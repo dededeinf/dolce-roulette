@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ドルーレット v2.0</title>
+    <title>ドルーレット v2.1</title>
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -24,13 +24,47 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            position: relative; /* For absolute positioning of refresh button */
+        }
+
+        .header-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 0 10px;
+            box-sizing: border-box;
         }
 
         h1 {
             color: var(--accent-color);
-            margin-bottom: 20px;
             font-size: 1.8rem;
+            margin: 0;
+            text-align: center;
+        }
+
+        .refresh-btn {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            color: #777;
+            border: 1px solid #444;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .refresh-btn:hover {
+            background: #333;
+            color: #fff;
+            border-color: #888;
         }
 
         .container {
@@ -219,26 +253,6 @@
             margin-bottom: 10px;
         }
 
-        .refresh-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: #333;
-            color: #aaa;
-            border: 1px solid #555;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            transition: all 0.2s;
-        }
-
-        .refresh-btn:hover {
-            background: #444;
-            color: #fff;
-            border-color: #888;
-        }
-
         .footer {
             margin-top: 40px;
             margin-bottom: 10px;
@@ -254,20 +268,25 @@
             margin-right: 5px;
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 450px) {
             .refresh-btn {
                 position: static;
-                margin-bottom: 15px;
-                align-self: flex-end;
+                transform: none;
+                margin-top: 10px;
+            }
+            .header-wrapper {
+                flex-direction: column;
             }
         }
     </style>
 </head>
 <body>
 
-    <button class="refresh-btn" id="force-reload" title="Cache Clear & Reload">↻ RELOAD</button>
+    <div class="header-wrapper">
+        <h1>ドルーレット v2.1</h1>
+        <button class="refresh-btn" id="force-reload" title="Reload">↻ RELOAD</button>
+    </div>
 
-    <h1>ドルーレット v2.0</h1>
     <div id="loading-status">Database Loading...</div>
 
     <div class="container">
@@ -560,7 +579,16 @@
                 if (selectedGauge.hasValue) {
                     const rMin = Math.min(selectedGauge.min, selectedGauge.max);
                     const rMax = Math.max(selectedGauge.min, selectedGauge.max);
-                    const val = getRandomInt(rMin, rMax);
+                    
+                    let val;
+                    if (selectedGauge.type === '段位') {
+                        const minEven = Math.ceil(rMin / 2);
+                        const maxEven = Math.floor(rMax / 2);
+                        val = getRandomInt(minEven, maxEven) * 2;
+                    } else {
+                        val = getRandomInt(rMin, rMax);
+                    }
+                    
                     gaugeResult = `${selectedGauge.type} ${val}${selectedGauge.suffix}`;
                 } else {
                     gaugeResult = selectedGauge.type;
@@ -716,4 +744,3 @@
     </script>
 </body>
 </html>
-
