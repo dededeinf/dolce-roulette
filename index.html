@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ドルチェルーレット</title>
+    <title>ドルーレット</title>
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -124,7 +124,6 @@
             transform: translateY(0);
         }
 
-        /* 禁用狀態樣式 */
         button#roll-btn:disabled {
             background-color: #555;
             cursor: not-allowed;
@@ -138,13 +137,13 @@
             background-color: #000;
             border: 2px solid var(--accent-color);
             border-radius: 8px;
-            min-height: 100px;
+            min-height: 120px;
             display: none;
         }
 
         .result-line {
             font-size: 1.2rem;
-            margin: 10px 0;
+            margin: 15px 0;
             line-height: 1.4;
             display: flex;
             justify-content: space-between;
@@ -167,13 +166,23 @@
             font-weight: bold;
             font-size: 1.3rem;
             text-align: right;
-            transition: color 0.1s;
+            min-width: 150px;
         }
-        
-        /* 動畫中的樣式 */
-        .rolling .result-value {
-            color: rgba(255, 255, 255, 0.5);
-            text-shadow: 0 0 5px rgba(255, 64, 129, 0.5);
+
+        .rolling-text {
+            color: rgba(255, 255, 255, 0.4);
+            text-shadow: 0 0 2px rgba(255, 64, 129, 0.5);
+        }
+
+        .locked-flash {
+            animation: flashEffect 0.5s ease-out;
+            color: #fff;
+            text-shadow: 0 0 10px var(--accent-color);
+        }
+
+        @keyframes flashEffect {
+            0% { transform: scale(1.2); color: #fff; text-shadow: 0 0 20px #fff; }
+            100% { transform: scale(1); color: #fff; text-shadow: none; }
         }
 
         input[type="checkbox"] {
@@ -185,7 +194,7 @@
 </head>
 <body>
 
-    <h1>ドルチェルーレット</h1>
+    <h1>ドルーレット</h1>
 
     <div class="container">
         <div class="section">
@@ -266,12 +275,22 @@
         <button id="roll-btn">START ROULETTE</button>
 
         <div id="result-area">
-            <div id="result-content"></div>
+            <div class="result-line">
+                <div class="result-label">ゲージ</div>
+                <div class="result-value" id="res-val-0">---</div>
+            </div>
+            <div class="result-line">
+                <div class="result-label">プレースピード</div>
+                <div class="result-value" id="res-val-1">---</div>
+            </div>
+            <div class="result-line">
+                <div class="result-label">フォルダ</div>
+                <div class="result-value" id="res-val-2">---</div>
+            </div>
         </div>
     </div>
 
     <script>
-        // 工具函數
         function getRandomInt(min, max) {
             min = Math.ceil(min);
             max = Math.floor(max);
@@ -285,11 +304,9 @@
             return parseFloat(result.toFixed(2));
         }
 
-        // 核心邏輯：產生一次結果
         function generateOneResult() {
             const results = [];
 
-            // --- 1. Gauge ---
             const gaugeOptions = [];
             if (document.getElementById('chk-dani').checked) {
                 const min = parseInt(document.getElementById('dani-min').value) || 0;
@@ -317,27 +334,22 @@
                     gaugeResult = selectedGauge.type;
                 }
             }
-            results.push({ label: 'ゲージ', value: gaugeResult });
+            results.push(gaugeResult);
 
-            // --- 2. Speed ---
             const speedMin = parseFloat(document.getElementById('speed-min').value) || 0.75;
             const speedMax = parseFloat(document.getElementById('speed-max').value) || 1.50;
             const rSpeedMin = Math.min(speedMin, speedMax);
             const rSpeedMax = Math.max(speedMin, speedMax);
-            
             const speedVal = getRandomStep(rSpeedMin, rSpeedMax, 0.05);
-            results.push({ label: 'プレースピード', value: `x${speedVal.toFixed(2)}` });
+            results.push(`x${speedVal.toFixed(2)}`);
 
-            // --- 3. Folder ---
             const folderOptions = [];
-            
             if (document.getElementById('chk-level').checked) {
                 const weight = parseInt(document.getElementById('prob-level').value) || 0;
                 const min = parseInt(document.getElementById('level-min').value) || 1;
                 const max = parseInt(document.getElementById('level-max').value) || 12;
                 folderOptions.push({ type: 'レベルフォルダ', hasValue: true, min: min, max: max, weight: weight });
             }
-            
             if (document.getElementById('chk-dahlia').checked) {
                 const weight = parseInt(document.getElementById('prob-dahlia').value) || 0;
                 folderOptions.push({ type: 'ダリアフォルダ', hasValue: false, weight: weight });
@@ -345,29 +357,22 @@
 
             let folderResult = "なし";
             if (folderOptions.length > 0) {
-                if (folderOptions.length === 1) {
-                    var selectedFolder = folderOptions[0];
-                } else {
-                    let totalWeight = 0;
-                    folderOptions.forEach(opt => totalWeight += opt.weight);
-                    
-                    if (totalWeight <= 0) {
-                        folderOptions.forEach(opt => opt.weight = 1);
-                        totalWeight = folderOptions.length;
-                    }
-
-                    let random = Math.random() * totalWeight;
-                    var selectedFolder = null;
-                    
-                    for (const opt of folderOptions) {
-                        if (random < opt.weight) {
-                            selectedFolder = opt;
-                            break;
-                        }
-                        random -= opt.weight;
-                    }
-                    if (!selectedFolder) selectedFolder = folderOptions[folderOptions.length - 1];
+                let totalWeight = 0;
+                folderOptions.forEach(opt => totalWeight += opt.weight);
+                if (totalWeight <= 0) {
+                    folderOptions.forEach(opt => opt.weight = 1);
+                    totalWeight = folderOptions.length;
                 }
+                let random = Math.random() * totalWeight;
+                var selectedFolder = null;
+                for (const opt of folderOptions) {
+                    if (random < opt.weight) {
+                        selectedFolder = opt;
+                        break;
+                    }
+                    random -= opt.weight;
+                }
+                if (!selectedFolder) selectedFolder = folderOptions[folderOptions.length - 1];
 
                 if (selectedFolder.hasValue) {
                     const rMin = Math.min(selectedFolder.min, selectedFolder.max);
@@ -378,62 +383,63 @@
                     folderResult = selectedFolder.type;
                 }
             }
-            results.push({ label: 'フォルダ', value: folderResult });
+            results.push(folderResult);
 
             return results;
         }
 
-        // 渲染函數
-        function renderResults(results) {
-            const resultContent = document.getElementById('result-content');
-            let html = '';
-            results.forEach(item => {
-                html += `
-                    <div class="result-line">
-                        <div class="result-label">${item.label}</div>
-                        <div class="result-value">${item.value}</div>
-                    </div>
-                `;
-            });
-            resultContent.innerHTML = html;
-        }
-
-        // 按鈕點擊事件
         document.getElementById('roll-btn').addEventListener('click', function() {
             const btn = document.getElementById('roll-btn');
             const resultArea = document.getElementById('result-area');
-            const resultContent = document.getElementById('result-content');
             
-            // 預先計算最終結果
             const finalResults = generateOneResult();
             
-            // UI 狀態設定
             btn.disabled = true;
             btn.textContent = "抽選中...";
             resultArea.style.display = 'block';
-            resultArea.classList.add('rolling'); // 加入動畫樣式
 
-            // 動畫參數
-            const duration = 1500; // 動畫總時長 (毫秒)
-            const intervalTime = 50; // 變換頻率 (毫秒)
-            let elapsed = 0;
+            const domElements = [
+                document.getElementById('res-val-0'),
+                document.getElementById('res-val-1'),
+                document.getElementById('res-val-2')
+            ];
 
-            // 啟動計時器 (滾動效果)
+            const startTime = Date.now();
+            const lockTimes = [2000, 4500, 7000];
+            const isLocked = [false, false, false];
+
+            domElements.forEach(el => {
+                el.className = 'result-value rolling-text'; 
+            });
+
             const timer = setInterval(() => {
-                const tempResults = generateOneResult(); // 產生隨機過程結果
-                renderResults(tempResults);
+                const now = Date.now();
+                const elapsed = now - startTime;
                 
-                elapsed += intervalTime;
-                
-                // 結束動畫
-                if (elapsed >= duration) {
+                const tempResults = generateOneResult();
+
+                let allLocked = true;
+
+                for (let i = 0; i < 3; i++) {
+                    if (!isLocked[i]) {
+                        if (elapsed >= lockTimes[i]) {
+                            isLocked[i] = true;
+                            domElements[i].textContent = finalResults[i];
+                            domElements[i].className = 'result-value locked-flash';
+                        } else {
+                            domElements[i].textContent = tempResults[i];
+                            allLocked = false;
+                        }
+                    }
+                }
+
+                if (allLocked) {
                     clearInterval(timer);
-                    renderResults(finalResults); // 顯示最終結果
-                    resultArea.classList.remove('rolling'); // 移除動畫樣式
                     btn.disabled = false;
                     btn.textContent = "START ROULETTE";
                 }
-            }, intervalTime);
+
+            }, 50);
         });
     </script>
 </body>
