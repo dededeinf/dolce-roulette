@@ -80,12 +80,11 @@
             text-align: center;
         }
         
-        /* 特別為機率輸入框設定樣式 */
         .prob-input-group {
             display: inline-flex;
             align-items: center;
             font-size: 0.85rem;
-            color: #ffb74d; /* 橘黃色區隔 */
+            color: #ffb74d;
             margin-right: 10px;
         }
         
@@ -113,11 +112,24 @@
             border-radius: 8px;
             cursor: pointer;
             margin-top: 10px;
-            transition: opacity 0.2s;
+            transition: all 0.2s;
         }
 
         button#roll-btn:hover {
             opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        button#roll-btn:active {
+            transform: translateY(0);
+        }
+
+        /* 禁用狀態樣式 */
+        button#roll-btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            transform: none;
+            opacity: 0.7;
         }
 
         #result-area {
@@ -134,6 +146,15 @@
             font-size: 1.2rem;
             margin: 10px 0;
             line-height: 1.4;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .result-line:last-child {
+            border-bottom: none;
         }
 
         .result-label {
@@ -145,8 +166,16 @@
             color: #fff;
             font-weight: bold;
             font-size: 1.3rem;
+            text-align: right;
+            transition: color 0.1s;
         }
         
+        /* 動畫中的樣式 */
+        .rolling .result-value {
+            color: rgba(255, 255, 255, 0.5);
+            text-shadow: 0 0 5px rgba(255, 64, 129, 0.5);
+        }
+
         input[type="checkbox"] {
             transform: scale(1.2);
             accent-color: var(--accent-color);
@@ -242,6 +271,7 @@
     </div>
 
     <script>
+        // 工具函數
         function getRandomInt(min, max) {
             min = Math.ceil(min);
             max = Math.floor(max);
@@ -255,21 +285,20 @@
             return parseFloat(result.toFixed(2));
         }
 
-        document.getElementById('roll-btn').addEventListener('click', function() {
+        // 核心邏輯：產生一次結果
+        function generateOneResult() {
             const results = [];
-            const resultArea = document.getElementById('result-area');
-            const resultContent = document.getElementById('result-content');
-            
+
             // --- 1. Gauge ---
             const gaugeOptions = [];
             if (document.getElementById('chk-dani').checked) {
-                const min = parseInt(document.getElementById('dani-min').value);
-                const max = parseInt(document.getElementById('dani-max').value);
+                const min = parseInt(document.getElementById('dani-min').value) || 0;
+                const max = parseInt(document.getElementById('dani-max').value) || 100;
                 gaugeOptions.push({ type: '段位', hasValue: true, min: min, max: max, suffix: '%' });
             }
             if (document.getElementById('chk-erosion').checked) {
-                const min = parseInt(document.getElementById('erosion-min').value);
-                const max = parseInt(document.getElementById('erosion-max').value);
+                const min = parseInt(document.getElementById('erosion-min').value) || 1;
+                const max = parseInt(document.getElementById('erosion-max').value) || 5;
                 gaugeOptions.push({ type: '侵蝕', hasValue: true, min: min, max: max, suffix: '★' });
             }
             if (document.getElementById('chk-exh').checked) gaugeOptions.push({ type: 'EXH', hasValue: false });
@@ -291,22 +320,21 @@
             results.push({ label: 'ゲージ', value: gaugeResult });
 
             // --- 2. Speed ---
-            const speedMin = parseFloat(document.getElementById('speed-min').value);
-            const speedMax = parseFloat(document.getElementById('speed-max').value);
+            const speedMin = parseFloat(document.getElementById('speed-min').value) || 0.75;
+            const speedMax = parseFloat(document.getElementById('speed-max').value) || 1.50;
             const rSpeedMin = Math.min(speedMin, speedMax);
             const rSpeedMax = Math.max(speedMin, speedMax);
             
             const speedVal = getRandomStep(rSpeedMin, rSpeedMax, 0.05);
             results.push({ label: 'プレースピード', value: `x${speedVal.toFixed(2)}` });
 
-            // --- 3. Folder (Weighted Probability) ---
+            // --- 3. Folder ---
             const folderOptions = [];
             
-            // 讀取設定與權重
             if (document.getElementById('chk-level').checked) {
                 const weight = parseInt(document.getElementById('prob-level').value) || 0;
-                const min = parseInt(document.getElementById('level-min').value);
-                const max = parseInt(document.getElementById('level-max').value);
+                const min = parseInt(document.getElementById('level-min').value) || 1;
+                const max = parseInt(document.getElementById('level-max').value) || 12;
                 folderOptions.push({ type: 'レベルフォルダ', hasValue: true, min: min, max: max, weight: weight });
             }
             
@@ -317,15 +345,12 @@
 
             let folderResult = "なし";
             if (folderOptions.length > 0) {
-                // 如果只有一個選項，直接選它
                 if (folderOptions.length === 1) {
                     var selectedFolder = folderOptions[0];
                 } else {
-                    // 如果有多個，進行權重計算
                     let totalWeight = 0;
                     folderOptions.forEach(opt => totalWeight += opt.weight);
                     
-                    // 如果總權重為 0 (防止錯誤)，則平均分配
                     if (totalWeight <= 0) {
                         folderOptions.forEach(opt => opt.weight = 1);
                         totalWeight = folderOptions.length;
@@ -341,11 +366,9 @@
                         }
                         random -= opt.weight;
                     }
-                    // 防呆
                     if (!selectedFolder) selectedFolder = folderOptions[folderOptions.length - 1];
                 }
 
-                // 生成結果字串
                 if (selectedFolder.hasValue) {
                     const rMin = Math.min(selectedFolder.min, selectedFolder.max);
                     const rMax = Math.max(selectedFolder.min, selectedFolder.max);
@@ -357,7 +380,12 @@
             }
             results.push({ label: 'フォルダ', value: folderResult });
 
-            // Render
+            return results;
+        }
+
+        // 渲染函數
+        function renderResults(results) {
+            const resultContent = document.getElementById('result-content');
             let html = '';
             results.forEach(item => {
                 html += `
@@ -367,9 +395,45 @@
                     </div>
                 `;
             });
-
             resultContent.innerHTML = html;
+        }
+
+        // 按鈕點擊事件
+        document.getElementById('roll-btn').addEventListener('click', function() {
+            const btn = document.getElementById('roll-btn');
+            const resultArea = document.getElementById('result-area');
+            const resultContent = document.getElementById('result-content');
+            
+            // 預先計算最終結果
+            const finalResults = generateOneResult();
+            
+            // UI 狀態設定
+            btn.disabled = true;
+            btn.textContent = "抽選中...";
             resultArea.style.display = 'block';
+            resultArea.classList.add('rolling'); // 加入動畫樣式
+
+            // 動畫參數
+            const duration = 1500; // 動畫總時長 (毫秒)
+            const intervalTime = 50; // 變換頻率 (毫秒)
+            let elapsed = 0;
+
+            // 啟動計時器 (滾動效果)
+            const timer = setInterval(() => {
+                const tempResults = generateOneResult(); // 產生隨機過程結果
+                renderResults(tempResults);
+                
+                elapsed += intervalTime;
+                
+                // 結束動畫
+                if (elapsed >= duration) {
+                    clearInterval(timer);
+                    renderResults(finalResults); // 顯示最終結果
+                    resultArea.classList.remove('rolling'); // 移除動畫樣式
+                    btn.disabled = false;
+                    btn.textContent = "START ROULETTE";
+                }
+            }, intervalTime);
         });
     </script>
 </body>
