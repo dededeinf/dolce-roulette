@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ドルチェルーレット</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --accent-color: #ff4081;
+            --card-bg: #2d2d2d;
+            --border-color: #444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--accent-color);
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .section {
+            background-color: var(--card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 2px solid var(--accent-color);
+            display: inline-block;
+            padding-bottom: 3px;
+        }
+
+        .option-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .option-row label {
+            margin-left: 8px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        input[type="number"] {
+            background: #444;
+            border: 1px solid #666;
+            color: white;
+            padding: 4px;
+            border-radius: 4px;
+            width: 60px;
+            text-align: center;
+        }
+
+        .range-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        button#roll-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: opacity 0.2s;
+        }
+
+        button#roll-btn:hover {
+            opacity: 0.9;
+        }
+
+        #result-area {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #000;
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            min-height: 100px;
+            display: none;
+        }
+
+        .result-line {
+            font-size: 1.2rem;
+            margin: 10px 0;
+            line-height: 1.4;
+        }
+
+        .result-label {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .result-value {
+            color: #fff;
+            font-weight: bold;
+            font-size: 1.3rem;
+        }
+        
+        /* Checkbox styling */
+        input[type="checkbox"] {
+            transform: scale(1.2);
+            accent-color: var(--accent-color);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>ドルチェルーレット</h1>
+
+    <div class="container">
+        <div class="section">
+            <div class="section-title">ゲージ</div>
+            
+            <div class="option-row">
+                <input type="checkbox" id="chk-dani" checked>
+                <label for="chk-dani">段位</label>
+                <div class="range-group">
+                    <input type="number" id="dani-min" value="2" min="0" max="100">% - 
+                    <input type="number" id="dani-max" value="100" min="0" max="100">%
+                </div>
+            </div>
+
+            <div class="option-row">
+                <input type="checkbox" id="chk-erosion" checked>
+                <label for="chk-erosion">侵蝕</label>
+                <div class="range-group">
+                    <input type="number" id="erosion-min" value="1" min="1" max="5">★ - 
+                    <input type="number" id="erosion-max" value="5" min="1" max="5">★
+                </div>
+            </div>
+
+            <div class="option-row">
+                <input type="checkbox" id="chk-exh" checked>
+                <label for="chk-exh">EXH</label>
+            </div>
+            
+            <div class="option-row">
+                <input type="checkbox" id="chk-hard" checked>
+                <label for="chk-hard">HARD</label>
+            </div>
+
+            <div class="option-row">
+                <input type="checkbox" id="chk-normal" checked>
+                <label for="chk-normal">NORMAL</label>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">プレースピード</div>
+            <div class="option-row">
+                <div class="range-group" style="color: var(--text-color);">
+                    x <input type="number" id="speed-min" value="0.75" step="0.05"> - 
+                    x <input type="number" id="speed-max" value="1.50" step="0.05">
+                    <span style="font-size:0.8rem; color:#888; margin-left:10px;">(STEP: 0.05)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">フォルダ</div>
+            
+            <div class="option-row">
+                <input type="checkbox" id="chk-level" checked>
+                <label for="chk-level">レベルフォルダ</label>
+                <div class="range-group">
+                    ★<input type="number" id="level-min" value="1" min="1" max="20"> - 
+                    ★<input type="number" id="level-max" value="12" min="1" max="20">
+                </div>
+            </div>
+
+            <div class="option-row">
+                <input type="checkbox" id="chk-dahlia" checked>
+                <label for="chk-dahlia">ダリアフォルダ</label>
+            </div>
+        </div>
+
+        <button id="roll-btn">START ROULETTE</button>
+
+        <div id="result-area">
+            <div id="result-content"></div>
+        </div>
+    </div>
+
+    <script>
+        // 工具函數：取得範圍內的隨機整數 (含最大最小值)
+        function getRandomInt(min, max) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        // 工具函數：取得範圍內的隨機數字 (指定 step)
+        function getRandomStep(min, max, step) {
+            const steps = Math.floor((max - min) / step);
+            const randomStep = Math.floor(Math.random() * (steps + 1));
+            const result = min + (randomStep * step);
+            return parseFloat(result.toFixed(2));
+        }
+
+        document.getElementById('roll-btn').addEventListener('click', function() {
+            const results = [];
+            const resultArea = document.getElementById('result-area');
+            const resultContent = document.getElementById('result-content');
+            
+            // 1. 處理 ゲージ (Gauge)
+            // 從有打勾的選項中隨機選出一個類型，再根據類型決定數值
+            const gaugeOptions = [];
+            
+            if (document.getElementById('chk-dani').checked) {
+                const min = parseInt(document.getElementById('dani-min').value);
+                const max = parseInt(document.getElementById('dani-max').value);
+                gaugeOptions.push({ type: '段位', hasValue: true, min: min, max: max, suffix: '%' });
+            }
+            if (document.getElementById('chk-erosion').checked) {
+                const min = parseInt(document.getElementById('erosion-min').value);
+                const max = parseInt(document.getElementById('erosion-max').value);
+                gaugeOptions.push({ type: '侵蝕', hasValue: true, min: min, max: max, suffix: '★' });
+            }
+            if (document.getElementById('chk-exh').checked) gaugeOptions.push({ type: 'EXH', hasValue: false });
+            if (document.getElementById('chk-hard').checked) gaugeOptions.push({ type: 'HARD', hasValue: false });
+            if (document.getElementById('chk-normal').checked) gaugeOptions.push({ type: 'NORMAL', hasValue: false });
+
+            let gaugeResult = "なし";
+            if (gaugeOptions.length > 0) {
+                const selectedGauge = gaugeOptions[Math.floor(Math.random() * gaugeOptions.length)];
+                if (selectedGauge.hasValue) {
+                    // 若 min > max，自動交換
+                    const rMin = Math.min(selectedGauge.min, selectedGauge.max);
+                    const rMax = Math.max(selectedGauge.min, selectedGauge.max);
+                    const val = getRandomInt(rMin, rMax);
+                    gaugeResult = `${selectedGauge.type} ${val}${selectedGauge.suffix}`;
+                } else {
+                    gaugeResult = selectedGauge.type;
+                }
+            }
+            results.push({ label: 'ゲージ', value: gaugeResult });
+
+            // 2. 處理 プレースピード (Speed)
+            const speedMin = parseFloat(document.getElementById('speed-min').value);
+            const speedMax = parseFloat(document.getElementById('speed-max').value);
+            const rSpeedMin = Math.min(speedMin, speedMax);
+            const rSpeedMax = Math.max(speedMin, speedMax);
+            
+            const speedVal = getRandomStep(rSpeedMin, rSpeedMax, 0.05);
+            results.push({ label: 'プレースピード', value: `x${speedVal.toFixed(2)}` });
+
+            // 3. 處理 フォルダ (Folder)
+            const folderOptions = [];
+            
+            if (document.getElementById('chk-level').checked) {
+                const min = parseInt(document.getElementById('level-min').value);
+                const max = parseInt(document.getElementById('level-max').value);
+                folderOptions.push({ type: 'レベルフォルダ', hasValue: true, min: min, max: max });
+            }
+            if (document.getElementById('chk-dahlia').checked) {
+                folderOptions.push({ type: 'ダリアフォルダ', hasValue: false });
+            }
+
+            let folderResult = "なし";
+            if (folderOptions.length > 0) {
+                const selectedFolder = folderOptions[Math.floor(Math.random() * folderOptions.length)];
+                if (selectedFolder.hasValue) {
+                    const rMin = Math.min(selectedFolder.min, selectedFolder.max);
+                    const rMax = Math.max(selectedFolder.min, selectedFolder.max);
+                    const val = getRandomInt(rMin, rMax);
+                    folderResult = `${selectedFolder.type} ★${val}`;
+                } else {
+                    folderResult = selectedFolder.type;
+                }
+            }
+            results.push({ label: 'フォルダ', value: folderResult });
+
+            // 渲染結果
+            let html = '';
+            results.forEach(item => {
+                html += `
+                    <div class="result-line">
+                        <div class="result-label">${item.label}</div>
+                        <div class="result-value">${item.value}</div>
+                    </div>
+                `;
+            });
+
+            resultContent.innerHTML = html;
+            resultArea.style.display = 'block';
+        });
+    </script>
+</body>
+</html>
