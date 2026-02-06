@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ドルーレット</title>
+    <title>ドルーレット v2.0</title>
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -24,6 +24,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            position: relative; /* For absolute positioning of refresh button */
         }
 
         h1 {
@@ -79,7 +80,19 @@
             width: 50px;
             text-align: center;
         }
+
+        input[type="number"]:disabled {
+            background: #333;
+            color: #777;
+            border-color: #444;
+        }
         
+        input[type="radio"] {
+            transform: scale(1.2);
+            accent-color: var(--accent-color);
+            margin-right: 5px;
+        }
+
         .prob-input-group {
             display: inline-flex;
             align-items: center;
@@ -159,6 +172,7 @@
         .result-label {
             color: #aaa;
             font-size: 0.9rem;
+            min-width: 100px;
         }
 
         .result-value {
@@ -166,7 +180,20 @@
             font-weight: bold;
             font-size: 1.3rem;
             text-align: right;
-            min-width: 150px;
+            word-break: break-word;
+            max-width: 70%;
+        }
+
+        .folder-name {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .song-info {
+            font-size: 1.6rem; 
+            color: #81d4fa;
+            line-height: 1.2;
         }
 
         .rolling-text {
@@ -185,18 +212,77 @@
             100% { transform: scale(1); color: #fff; text-shadow: none; }
         }
 
+        #loading-status {
+            text-align: center;
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .refresh-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #333;
+            color: #aaa;
+            border: 1px solid #555;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: #444;
+            color: #fff;
+            border-color: #888;
+        }
+
+        .footer {
+            margin-top: 40px;
+            margin-bottom: 10px;
+            color: #444;
+            font-size: 0.75rem;
+            text-align: center;
+            font-family: monospace;
+        }
+
         input[type="checkbox"] {
             transform: scale(1.2);
             accent-color: var(--accent-color);
             margin-right: 5px;
         }
+
+        @media (max-width: 600px) {
+            .refresh-btn {
+                position: static;
+                margin-bottom: 15px;
+                align-self: flex-end;
+            }
+        }
     </style>
 </head>
 <body>
 
-    <h1>ドルーレット</h1>
+    <button class="refresh-btn" id="force-reload" title="Cache Clear & Reload">↻ RELOAD</button>
+
+    <h1>ドルーレット v2.0</h1>
+    <div id="loading-status">Database Loading...</div>
 
     <div class="container">
+        
+        <div class="section">
+            <div class="section-title">モード設定</div>
+            <div class="option-row">
+                <input type="radio" id="mode-song-on" name="song-mode" value="on" checked>
+                <label for="mode-song-on">曲名あり</label>
+                
+                <input type="radio" id="mode-song-off" name="song-mode" value="off" style="margin-left: 20px;">
+                <label for="mode-song-off">曲名なし</label>
+            </div>
+        </div>
+
         <div class="section">
             <div class="section-title">ゲージ</div>
             
@@ -253,7 +339,7 @@
                 <label for="chk-level">レベルフォルダ</label>
                 
                 <span class="prob-input-group">
-                    (確率: <input type="number" id="prob-level" value="50" min="0">)
+                    (確率: <input type="number" id="prob-level" value="50" min="0" max="100">)
                 </span>
 
                 <div class="range-group">
@@ -267,12 +353,12 @@
                 <label for="chk-dahlia">ダリアフォルダ</label>
                 
                 <span class="prob-input-group">
-                    (確率: <input type="number" id="prob-dahlia" value="50" min="0">)
+                    (確率: <input type="number" id="prob-dahlia" value="50" min="0" max="100">)
                 </span>
             </div>
         </div>
 
-        <button id="roll-btn">START ROULETTE</button>
+        <button id="roll-btn" disabled>LOADING DATA...</button>
 
         <div id="result-area">
             <div class="result-line">
@@ -284,13 +370,113 @@
                 <div class="result-value" id="res-val-1">---</div>
             </div>
             <div class="result-line">
-                <div class="result-label">フォルダ</div>
+                <div class="result-label" id="lbl-folder">フォルダ＆楽曲</div>
                 <div class="result-value" id="res-val-2">---</div>
             </div>
         </div>
     </div>
 
+    <div class="footer">Created by DEDEDE using Gemini | Version 260206</div>
+
     <script>
+        let songData = [];
+
+        document.getElementById('force-reload').addEventListener('click', function() {
+            const url = new URL(window.location.href);
+            url.searchParams.set('t', Date.now());
+            window.location.href = url.toString();
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initProbabilityLogic();
+
+            fetch('./songs.json')
+                .then(response => {
+                    if (!response.ok) throw new Error("HTTP Error " + response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    songData = data;
+                    document.getElementById('loading-status').textContent = "Database Loaded: " + songData.length + " songs.";
+                    document.getElementById('loading-status').style.color = "#4caf50";
+                    document.getElementById('roll-btn').disabled = false;
+                    document.getElementById('roll-btn').textContent = "START ROULETTE";
+                })
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('loading-status').textContent = "Failed to load songs.json.";
+                    document.getElementById('loading-status').style.color = "#f44336";
+                    document.getElementById('roll-btn').disabled = false;
+                    document.getElementById('roll-btn').textContent = "START (No DB)";
+                });
+        });
+
+        function initProbabilityLogic() {
+            const chkLevel = document.getElementById('chk-level');
+            const chkDahlia = document.getElementById('chk-dahlia');
+            const probLevel = document.getElementById('prob-level');
+            const probDahlia = document.getElementById('prob-dahlia');
+
+            function updateProbabilityInputs() {
+                if (chkLevel.checked && chkDahlia.checked) {
+                    probLevel.disabled = false;
+                    probDahlia.disabled = false;
+                    if (parseInt(probLevel.value) === 0 && parseInt(probDahlia.value) === 0) {
+                        probLevel.value = 50;
+                        probDahlia.value = 50;
+                    } else if (parseInt(probLevel.value) === 100 && parseInt(probDahlia.value) === 0) {
+                        probLevel.value = 50;
+                        probDahlia.value = 50;
+                    } else if (parseInt(probLevel.value) === 0 && parseInt(probDahlia.value) === 100) {
+                        probLevel.value = 50;
+                        probDahlia.value = 50;
+                    }
+                } else if (chkLevel.checked && !chkDahlia.checked) {
+                    probLevel.value = 100;
+                    probDahlia.value = 0;
+                    probLevel.disabled = true;
+                    probDahlia.disabled = true;
+                } else if (!chkLevel.checked && chkDahlia.checked) {
+                    probLevel.value = 0;
+                    probDahlia.value = 100;
+                    probLevel.disabled = true;
+                    probDahlia.disabled = true;
+                } else {
+                    probLevel.value = 0;
+                    probDahlia.value = 0;
+                    probLevel.disabled = true;
+                    probDahlia.disabled = true;
+                }
+            }
+
+            chkLevel.addEventListener('change', updateProbabilityInputs);
+            chkDahlia.addEventListener('change', updateProbabilityInputs);
+
+            probLevel.addEventListener('input', function() {
+                if (!chkLevel.checked || !chkDahlia.checked) return;
+                
+                let val = parseInt(this.value);
+                if (isNaN(val)) val = 0;
+                if (val > 100) val = 100;
+                if (val < 0) val = 0;
+                
+                this.value = val;
+                probDahlia.value = 100 - val;
+            });
+
+            probDahlia.addEventListener('input', function() {
+                if (!chkLevel.checked || !chkDahlia.checked) return;
+                
+                let val = parseInt(this.value);
+                if (isNaN(val)) val = 0;
+                if (val > 100) val = 100;
+                if (val < 0) val = 0;
+                
+                this.value = val;
+                probLevel.value = 100 - val;
+            });
+        }
+
         function getRandomInt(min, max) {
             min = Math.ceil(min);
             max = Math.floor(max);
@@ -304,8 +490,54 @@
             return parseFloat(result.toFixed(2));
         }
 
+        function pickSongByLevel(level) {
+            if (!songData || songData.length === 0) return null;
+            
+            const candidates = songData.filter(song => {
+                const sp = song.levels.sp;
+                return sp.n == level || sp.h == level || sp.a == level || sp.l == level;
+            });
+
+            if (candidates.length === 0) return null;
+            
+            const song = candidates[Math.floor(Math.random() * candidates.length)];
+            
+            const validTypes = [];
+            if (song.levels.sp.n == level) validTypes.push('n');
+            if (song.levels.sp.h == level) validTypes.push('h');
+            if (song.levels.sp.a == level) validTypes.push('a');
+            if (song.levels.sp.l == level) validTypes.push('l');
+            
+            const selectedType = validTypes[Math.floor(Math.random() * validTypes.length)];
+            
+            return { song: song, type: selectedType };
+        }
+
+        function pickSongByDahlia() {
+            if (!songData || songData.length === 0) return null;
+            
+            const candidates = songData.filter(song => {
+                return song.levels.sp.l > 0;
+            });
+
+            if (candidates.length === 0) return null;
+            
+            const song = candidates[Math.floor(Math.random() * candidates.length)];
+            return { song: song, type: 'l' };
+        }
+
+        function getDifficultySuffix(type) {
+            if (type === 'n') return '(N)';
+            if (type === 'h') return '(H)';
+            if (type === 'a') return '(A)';
+            if (type === 'l') return '(墓)';
+            return '';
+        }
+
         function generateOneResult() {
             const results = [];
+            
+            const isSongMode = document.getElementById('mode-song-on').checked;
 
             const gaugeOptions = [];
             if (document.getElementById('chk-dani').checked) {
@@ -348,14 +580,15 @@
                 const weight = parseInt(document.getElementById('prob-level').value) || 0;
                 const min = parseInt(document.getElementById('level-min').value) || 1;
                 const max = parseInt(document.getElementById('level-max').value) || 12;
-                folderOptions.push({ type: 'レベルフォルダ', hasValue: true, min: min, max: max, weight: weight });
+                folderOptions.push({ type: 'level', hasValue: true, min: min, max: max, weight: weight });
             }
             if (document.getElementById('chk-dahlia').checked) {
                 const weight = parseInt(document.getElementById('prob-dahlia').value) || 0;
-                folderOptions.push({ type: 'ダリアフォルダ', hasValue: false, weight: weight });
+                folderOptions.push({ type: 'dahlia', hasValue: false, weight: weight });
             }
 
-            let folderResult = "なし";
+            let folderResultHTML = "なし";
+            
             if (folderOptions.length > 0) {
                 let totalWeight = 0;
                 folderOptions.forEach(opt => totalWeight += opt.weight);
@@ -374,29 +607,64 @@
                 }
                 if (!selectedFolder) selectedFolder = folderOptions[folderOptions.length - 1];
 
-                if (selectedFolder.hasValue) {
+                if (selectedFolder.type === 'level') {
                     const rMin = Math.min(selectedFolder.min, selectedFolder.max);
                     const rMax = Math.max(selectedFolder.min, selectedFolder.max);
-                    const val = getRandomInt(rMin, rMax);
-                    folderResult = `${selectedFolder.type} ★${val}`;
-                } else {
-                    folderResult = selectedFolder.type;
+                    const levelVal = getRandomInt(rMin, rMax);
+                    
+                    if (isSongMode) {
+                        const result = pickSongByLevel(levelVal);
+                        if (result) {
+                            const suffix = getDifficultySuffix(result.type);
+                            folderResultHTML = `
+                                <div class="folder-name">レベルフォルダ ★${levelVal}</div>
+                                <div class="song-info">${result.song.title_display} ${suffix}</div>
+                            `;
+                        } else {
+                            folderResultHTML = `<div class="folder-name">レベルフォルダ ★${levelVal}</div><div class="folder-name">(該当曲なし)</div>`;
+                        }
+                    } else {
+                        folderResultHTML = `レベルフォルダ ★${levelVal}`;
+                    }
+
+                } else if (selectedFolder.type === 'dahlia') {
+                    if (isSongMode) {
+                        const result = pickSongByDahlia();
+                        if (result) {
+                            const suffix = getDifficultySuffix(result.type);
+                            folderResultHTML = `
+                                <div class="folder-name">ダリアフォルダ</div>
+                                <div class="song-info">${result.song.title_display} ${suffix}</div>
+                            `;
+                        } else {
+                            folderResultHTML = `<div class="folder-name">ダリアフォルダ</div><div class="folder-name">(該当曲なし)</div>`;
+                        }
+                    } else {
+                        folderResultHTML = `ダリアフォルダ`;
+                    }
                 }
             }
-            results.push(folderResult);
+            results.push(folderResultHTML);
 
             return results;
         }
 
         document.getElementById('roll-btn').addEventListener('click', function() {
             const btn = document.getElementById('roll-btn');
-            const resultArea = document.getElementById('result-area');
+            const lblFolder = document.getElementById('lbl-folder');
+            const isSongMode = document.getElementById('mode-song-on').checked;
             
+            if (isSongMode) {
+                lblFolder.textContent = "フォルダ＆楽曲";
+            } else {
+                lblFolder.textContent = "フォルダ";
+            }
+
             const finalResults = generateOneResult();
             
             btn.disabled = true;
             btn.textContent = "抽選中...";
-            resultArea.style.display = 'block';
+            document.getElementById('result-area').style.display = 'block';
 
             const domElements = [
                 document.getElementById('res-val-0'),
@@ -416,7 +684,7 @@
                 const now = Date.now();
                 const elapsed = now - startTime;
                 
-                const tempResults = generateOneResult();
+                const tempResults = generateOneResult(); 
 
                 let allLocked = true;
 
@@ -424,10 +692,14 @@
                     if (!isLocked[i]) {
                         if (elapsed >= lockTimes[i]) {
                             isLocked[i] = true;
-                            domElements[i].textContent = finalResults[i];
+                            domElements[i].innerHTML = finalResults[i];
                             domElements[i].className = 'result-value locked-flash';
                         } else {
-                            domElements[i].textContent = tempResults[i];
+                            if (i === 2) {
+                                domElements[i].innerHTML = "<span style='font-size:1rem;color:#666;'>抽選中...</span>";
+                            } else {
+                                domElements[i].textContent = tempResults[i];
+                            }
                             allLocked = false;
                         }
                     }
