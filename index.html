@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ドルーレット v2.1</title>
+    <title>ドルーレット v2.2</title>
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -13,6 +13,7 @@
             --border-color: #444;
             --input-bg: #444;
             --input-border: #666;
+            --error-color: #ff5252;
         }
 
         body {
@@ -113,12 +114,30 @@
             border-radius: 4px;
             width: 50px;
             text-align: center;
+            transition: border-color 0.2s, background-color 0.2s;
         }
 
         input[type="number"]:disabled {
             background: #333;
             color: #777;
             border-color: #444;
+        }
+
+        input[type="number"].input-error {
+            border: 2px solid var(--error-color);
+            background-color: rgba(255, 82, 82, 0.1);
+        }
+
+        .error-msg {
+            color: var(--error-color);
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-left: 5px;
+            display: none;
+        }
+
+        .error-msg.visible {
+            display: inline-block;
         }
         
         input[type="radio"] {
@@ -231,14 +250,29 @@
         }
 
         .rolling-text {
-            color: rgba(255, 255, 255, 0.4);
-            text-shadow: 0 0 2px rgba(255, 64, 129, 0.5);
+            color: #666;
+            opacity: 0.7;
+            text-shadow: none;
+            transition: color 0.1s;
+        }
+
+        .waiting-text {
+            font-size: 1.1rem;
+            color: #555;
+            font-style: italic;
+            animation: pulse 0.8s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            100% { opacity: 1; text-shadow: 0 0 5px rgba(255, 64, 129, 0.3); }
         }
 
         .locked-flash {
             animation: flashEffect 0.5s ease-out;
             color: #fff;
             text-shadow: 0 0 10px var(--accent-color);
+            opacity: 1;
         }
 
         @keyframes flashEffect {
@@ -283,7 +317,7 @@
 <body>
 
     <div class="header-wrapper">
-        <h1>ドルーレット v2.1</h1>
+        <h1>ドルーレット v2.2</h1>
         <button class="refresh-btn" id="force-reload" title="Reload">↻ RELOAD</button>
     </div>
 
@@ -306,35 +340,37 @@
             <div class="section-title">ゲージ</div>
             
             <div class="option-row">
-                <input type="checkbox" id="chk-dani" checked>
+                <input type="checkbox" id="chk-dani" checked class="gauge-group">
                 <label for="chk-dani">段位</label>
                 <div class="range-group">
-                    <input type="number" id="dani-min" value="2" min="0" max="100">% - 
-                    <input type="number" id="dani-max" value="100" min="0" max="100">%
+                    <input type="number" id="dani-min" value="2" min="2" max="100">% - 
+                    <input type="number" id="dani-max" value="100" min="2" max="100">%
+                    <span class="error-msg">Error</span>
                 </div>
             </div>
 
             <div class="option-row">
-                <input type="checkbox" id="chk-erosion" checked>
+                <input type="checkbox" id="chk-erosion" checked class="gauge-group">
                 <label for="chk-erosion">侵蝕</label>
                 <div class="range-group">
                     <input type="number" id="erosion-min" value="1" min="1" max="5">★ - 
                     <input type="number" id="erosion-max" value="5" min="1" max="5">★
+                    <span class="error-msg">Error</span>
                 </div>
             </div>
 
             <div class="option-row">
-                <input type="checkbox" id="chk-exh" checked>
+                <input type="checkbox" id="chk-exh" checked class="gauge-group">
                 <label for="chk-exh">EXH</label>
             </div>
             
             <div class="option-row">
-                <input type="checkbox" id="chk-hard" checked>
+                <input type="checkbox" id="chk-hard" checked class="gauge-group">
                 <label for="chk-hard">HARD</label>
             </div>
 
             <div class="option-row">
-                <input type="checkbox" id="chk-normal" checked>
+                <input type="checkbox" id="chk-normal" checked class="gauge-group">
                 <label for="chk-normal">NORMAL</label>
             </div>
         </div>
@@ -345,6 +381,7 @@
                 <div class="range-group" style="color: var(--text-color);">
                     x <input type="number" id="speed-min" value="0.70" step="0.05"> - 
                     x <input type="number" id="speed-max" value="1.50" step="0.05">
+                    <span class="error-msg">Error</span>
                     <span style="font-size:0.8rem; color:#888; margin-left:10px;">(STEP: 0.05)</span>
                 </div>
             </div>
@@ -354,7 +391,7 @@
             <div class="section-title">フォルダ</div>
             
             <div class="option-row">
-                <input type="checkbox" id="chk-level" checked>
+                <input type="checkbox" id="chk-level" checked class="folder-group">
                 <label for="chk-level">レベルフォルダ</label>
                 
                 <span class="prob-input-group">
@@ -362,13 +399,14 @@
                 </span>
 
                 <div class="range-group">
-                    ★<input type="number" id="level-min" value="1" min="1" max="20"> - 
-                    ★<input type="number" id="level-max" value="12" min="1" max="20">
+                    ★<input type="number" id="level-min" value="1" min="1" max="12"> - 
+                    ★<input type="number" id="level-max" value="12" min="1" max="12">
+                    <span class="error-msg">Error</span>
                 </div>
             </div>
 
             <div class="option-row">
-                <input type="checkbox" id="chk-dahlia" checked>
+                <input type="checkbox" id="chk-dahlia" checked class="folder-group">
                 <label for="chk-dahlia">ダリアフォルダ</label>
                 
                 <span class="prob-input-group">
@@ -395,7 +433,7 @@
         </div>
     </div>
 
-    <div class="footer">Created by DEDEDE with Gemini | Version 260206</div>
+    <div class="footer">Created by DEDEDE with Gemini | Version 260207</div>
 
     <script>
         let songData = [];
@@ -408,6 +446,7 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             initProbabilityLogic();
+            initValidationLogic();
 
             fetch('./songs.json')
                 .then(response => {
@@ -418,15 +457,12 @@
                     songData = data;
                     document.getElementById('loading-status').textContent = "Database Loaded: " + songData.length + " songs.";
                     document.getElementById('loading-status').style.color = "#4caf50";
-                    document.getElementById('roll-btn').disabled = false;
-                    document.getElementById('roll-btn').textContent = "START ROULETTE";
+                    validateAll();
                 })
                 .catch(err => {
                     console.error(err);
                     document.getElementById('loading-status').textContent = "Failed to load songs.json.";
                     document.getElementById('loading-status').style.color = "#f44336";
-                    document.getElementById('roll-btn').disabled = false;
-                    document.getElementById('roll-btn').textContent = "START (No DB)";
                 });
         });
 
@@ -466,6 +502,7 @@
                     probLevel.disabled = true;
                     probDahlia.disabled = true;
                 }
+                validateAll();
             }
 
             chkLevel.addEventListener('change', updateProbabilityInputs);
@@ -494,6 +531,78 @@
                 this.value = val;
                 probLevel.value = 100 - val;
             });
+        }
+
+        function initValidationLogic() {
+            const inputs = document.querySelectorAll('input[type="number"], input[type="checkbox"]');
+            inputs.forEach(input => {
+                input.addEventListener('input', validateAll);
+                input.addEventListener('change', validateAll);
+            });
+        }
+
+        function validateAll() {
+            let isValid = true;
+            const btn = document.getElementById('roll-btn');
+
+            const gaugeChecked = Array.from(document.querySelectorAll('.gauge-group')).some(c => c.checked);
+            const folderChecked = Array.from(document.querySelectorAll('.folder-group')).some(c => c.checked);
+
+            if (!gaugeChecked || !folderChecked) {
+                isValid = false;
+            }
+
+            function checkField(id, min, max, isEnabled) {
+                const el = document.getElementById(id);
+                const parent = el.closest('.range-group');
+                const errorSpan = parent ? parent.querySelector('.error-msg') : null;
+                
+                if (!isEnabled) {
+                    el.classList.remove('input-error');
+                    return true;
+                }
+
+                const val = parseFloat(el.value);
+                if (isNaN(val) || val < min || val > max) {
+                    el.classList.add('input-error');
+                    if(errorSpan) errorSpan.classList.add('visible');
+                    return false;
+                } else {
+                    el.classList.remove('input-error');
+                    const siblings = parent.querySelectorAll('input[type="number"]');
+                    let allSiblingsValid = true;
+                    siblings.forEach(sib => {
+                        if (sib.classList.contains('input-error')) allSiblingsValid = false;
+                    });
+                    if (allSiblingsValid && errorSpan) errorSpan.classList.remove('visible');
+                    return true;
+                }
+            }
+
+            const chkDani = document.getElementById('chk-dani').checked;
+            if (!checkField('dani-min', 2, 100, chkDani)) isValid = false;
+            if (!checkField('dani-max', 2, 100, chkDani)) isValid = false;
+
+            const chkErosion = document.getElementById('chk-erosion').checked;
+            if (!checkField('erosion-min', 1, 5, chkErosion)) isValid = false;
+            if (!checkField('erosion-max', 1, 5, chkErosion)) isValid = false;
+
+            if (!checkField('speed-min', 0.70, 1.50, true)) isValid = false;
+            if (!checkField('speed-max', 0.70, 1.50, true)) isValid = false;
+
+            const chkLevel = document.getElementById('chk-level').checked;
+            if (!checkField('level-min', 1, 12, chkLevel)) isValid = false;
+            if (!checkField('level-max', 1, 12, chkLevel)) isValid = false;
+
+            if (songData.length > 0) {
+                if (isValid) {
+                    btn.disabled = false;
+                    btn.textContent = "START";
+                } else {
+                    btn.disabled = true;
+                    btn.textContent = "ERROR";
+                }
+            }
         }
 
         function getRandomInt(min, max) {
@@ -644,9 +753,11 @@
                         const result = pickSongByLevel(levelVal);
                         if (result) {
                             const suffix = getDifficultySuffix(result.type);
+                            const fullTitle = `${result.song.title_display} ${suffix}`;
+                            
                             folderResultHTML = `
                                 <div class="folder-name">レベルフォルダ ★${levelVal}</div>
-                                <div class="song-info">${result.song.title_display} ${suffix}</div>
+                                <div class="song-info">${fullTitle}</div>
                             `;
                         } else {
                             folderResultHTML = `<div class="folder-name">レベルフォルダ ★${levelVal}</div><div class="folder-name">(該当曲なし)</div>`;
@@ -660,9 +771,11 @@
                         const result = pickSongByDahlia();
                         if (result) {
                             const suffix = getDifficultySuffix(result.type);
+                            const fullTitle = `${result.song.title_display} ${suffix}`;
+
                             folderResultHTML = `
                                 <div class="folder-name">ダリアフォルダ</div>
-                                <div class="song-info">${result.song.title_display} ${suffix}</div>
+                                <div class="song-info">${fullTitle}</div>
                             `;
                         } else {
                             folderResultHTML = `<div class="folder-name">ダリアフォルダ</div><div class="folder-name">(該当曲なし)</div>`;
@@ -724,7 +837,20 @@
                             domElements[i].className = 'result-value locked-flash';
                         } else {
                             if (i === 2) {
-                                domElements[i].innerHTML = "<span style='font-size:1rem;color:#666;'>抽選中...</span>";
+                                let tempHtml = tempResults[i];
+                                tempHtml = tempHtml.replace(
+                                    /<div class="song-info"[\s\S]*?>[\s\S]*?<\/div>/,
+                                    '<div class="song-info waiting-text">楽曲抽選中...</div>'
+                                );
+                                // 万が一スタイル属性がない場合などのバックアップ
+                                if (tempHtml === tempResults[i]) {
+                                    tempHtml = tempHtml.replace(
+                                        /<div class="song-info">.*?<\/div>/,
+                                        '<div class="song-info waiting-text">楽曲抽選中...</div>'
+                                    );
+                                }
+                                const folderEl = domElements[i];
+                                folderEl.innerHTML = tempHtml;
                             } else {
                                 domElements[i].textContent = tempResults[i];
                             }
@@ -736,7 +862,7 @@
                 if (allLocked) {
                     clearInterval(timer);
                     btn.disabled = false;
-                    btn.textContent = "START ROULETTE";
+                    btn.textContent = "START";
                 }
 
             }, 50);
