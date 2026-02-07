@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ドルーレット v2.2</title>
+    <title>ドルーレット v3.0</title>
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -14,6 +14,9 @@
             --input-bg: #444;
             --input-border: #666;
             --error-color: #ff5252;
+            --success-color: #4caf50;
+            --lock-active: #ffd700;
+            --row-hover: #383838;
         }
 
         body {
@@ -106,24 +109,37 @@
             font-weight: bold;
         }
 
-        input[type="number"] {
+        /* Generic Text Input */
+        input[type="text"] {
             background: var(--input-bg);
             border: 1px solid var(--input-border);
             color: white;
-            padding: 4px;
+            padding: 4px 8px;
             border-radius: 4px;
+        }
+
+        /* Numeric Class for inputs that act as numbers */
+        input.numeric-input {
             width: 50px;
             text-align: center;
+            padding: 4px;
             transition: border-color 0.2s, background-color 0.2s;
         }
 
-        input[type="number"]:disabled {
+        input.numeric-input[readonly] {
+            background: #222;
+            color: #777;
+            border-color: #333;
+            cursor: not-allowed;
+        }
+
+        input.numeric-input:disabled {
             background: #333;
             color: #777;
             border-color: #444;
         }
 
-        input[type="number"].input-error {
+        input.numeric-input.input-error {
             border: 2px solid var(--error-color);
             background-color: rgba(255, 82, 82, 0.1);
         }
@@ -140,10 +156,78 @@
             display: inline-block;
         }
         
-        input[type="radio"] {
+        input[type="radio"], input[type="checkbox"] {
             transform: scale(1.2);
             accent-color: var(--accent-color);
             margin-right: 5px;
+        }
+
+        /* Folder Layout */
+        .folder-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .folder-row-item {
+            display: flex;
+            flex-wrap: nowrap; 
+            align-items: center;
+            justify-content: space-between;
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            transition: background-color 0.2s;
+        }
+
+        .folder-row-item:hover {
+            background-color: var(--row-hover);
+            border-color: #555;
+        }
+
+        /* Left side: Flex Column to force vertical stacking */
+        .folder-left-col {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex-grow: 1;
+        }
+
+        .folder-title-row {
+            display: flex;
+            align-items: center;
+        }
+
+        .folder-settings-row {
+            display: flex;
+            align-items: center;
+            padding-left: 28px; /* Indent below checkbox */
+        }
+
+        /* Right side: Probability and Lock */
+        .folder-right-col {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-left: 10px;
+            flex-shrink: 0; 
+        }
+
+        .range-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        .range-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            color: #aaa;
         }
 
         .prob-input-group {
@@ -153,19 +237,27 @@
             color: #ffb74d;
             margin-right: 10px;
         }
-        
-        .prob-input-group input {
-            width: 40px;
-            margin: 0 3px;
-            border-color: #ffb74d;
+
+        .prob-unit {
+            font-size: 0.8rem;
+            color: #aaa;
         }
 
-        .range-group {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.9rem;
-            color: #aaa;
+        .lock-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0 4px;
+            line-height: 1;
+            filter: grayscale(100%) opacity(0.5);
+            transition: all 0.2s;
+        }
+
+        .lock-btn.locked {
+            filter: none;
+            text-shadow: 0 0 5px var(--lock-active);
+            opacity: 1;
         }
 
         button#roll-btn {
@@ -296,10 +388,132 @@
             font-family: monospace;
         }
 
-        input[type="checkbox"] {
-            transform: scale(1.2);
-            accent-color: var(--accent-color);
-            margin-right: 5px;
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            border-radius: 8px;
+            border: 1px solid var(--accent-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 15px;
+            background: #222;
+            border-bottom: 1px solid #444;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: var(--accent-color);
+        }
+
+        .close-modal {
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 15px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .rule-group {
+            background: #333;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #555;
+        }
+
+        .rule-group-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+        }
+
+        .rule-items-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .rule-item-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .rule-item-row input[type="text"]:not(.numeric-input) {
+            flex-grow: 1;
+            width: auto;
+        }
+
+        .rule-btn {
+            background: #444;
+            border: 1px solid #666;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .rule-btn:hover {
+            background: #555;
+        }
+
+        .add-rule-btn {
+            width: 100%;
+            margin-top: 10px;
+            padding: 5px;
+            background: #2a2a2a;
+            height: auto;
+        }
+
+        .detail-btn {
+            background: transparent;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 2px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+        
+        .detail-btn:hover {
+            background: var(--accent-color);
+            color: white;
         }
 
         @media (max-width: 450px) {
@@ -311,13 +525,25 @@
             .header-wrapper {
                 flex-direction: column;
             }
+            .folder-row-item {
+                flex-direction: row; 
+                align-items: center;
+            }
+            .folder-left {
+                width: 100%; 
+                margin-bottom: 5px;
+            }
+            .folder-right {
+                width: 100%;
+                justify-content: flex-end;
+            }
         }
     </style>
 </head>
 <body>
 
     <div class="header-wrapper">
-        <h1>ドルーレット v2.2</h1>
+        <h1>ドルーレット v3.0</h1>
         <button class="refresh-btn" id="force-reload" title="Reload">↻ RELOAD</button>
     </div>
 
@@ -343,8 +569,8 @@
                 <input type="checkbox" id="chk-dani" checked class="gauge-group">
                 <label for="chk-dani">段位</label>
                 <div class="range-group">
-                    <input type="number" id="dani-min" value="2" min="2" max="100">% - 
-                    <input type="number" id="dani-max" value="100" min="2" max="100">%
+                    <input type="text" id="dani-min" value="2" class="numeric-input">% - 
+                    <input type="text" id="dani-max" value="100" class="numeric-input">%
                     <span class="error-msg">Error</span>
                 </div>
             </div>
@@ -353,8 +579,8 @@
                 <input type="checkbox" id="chk-erosion" checked class="gauge-group">
                 <label for="chk-erosion">侵蝕</label>
                 <div class="range-group">
-                    <input type="number" id="erosion-min" value="1" min="1" max="5">★ - 
-                    <input type="number" id="erosion-max" value="5" min="1" max="5">★
+                    <input type="text" id="erosion-min" value="1" class="numeric-input">★ - 
+                    <input type="text" id="erosion-max" value="5" class="numeric-input">★
                     <span class="error-msg">Error</span>
                 </div>
             </div>
@@ -376,11 +602,70 @@
         </div>
 
         <div class="section">
+            <div class="section-title">フォルダ</div>
+            <div class="folder-list">
+                
+                <div class="folder-row-item">
+                    <div class="folder-left-col">
+                        <div class="folder-title-row">
+                            <input type="checkbox" id="chk-level" checked class="folder-group folder-chk">
+                            <label for="chk-level">レベルフォルダ</label>
+                        </div>
+                        <div class="folder-settings-row">
+                            <div class="range-inline">
+                                <span style="color:#aaa;">★</span>
+                                <input type="text" id="level-min" value="1" class="numeric-input" style="width:30px; padding:2px;">
+                                <span>-</span>
+                                <input type="text" id="level-max" value="12" class="numeric-input" style="width:30px; padding:2px;">
+                                <span class="error-msg">Error</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="folder-right-col">
+                        <input type="text" id="prob-level" value="50" class="folder-prob numeric-input">
+                        <span class="prob-unit">%</span>
+                        <button class="lock-btn" onclick="toggleLock(this)">🔓</button>
+                    </div>
+                </div>
+
+                <div class="folder-row-item">
+                    <div class="folder-left-col">
+                        <div class="folder-title-row">
+                            <input type="checkbox" id="chk-dahlia" checked class="folder-group folder-chk">
+                            <label for="chk-dahlia">ダリアフォルダ</label>
+                        </div>
+                    </div>
+                    <div class="folder-right-col">
+                        <input type="text" id="prob-dahlia" value="50" class="folder-prob numeric-input">
+                        <span class="prob-unit">%</span>
+                        <button class="lock-btn" onclick="toggleLock(this)">🔓</button>
+                    </div>
+                </div>
+
+                <div class="folder-row-item">
+                    <div class="folder-left-col">
+                        <div class="folder-title-row">
+                            <input type="checkbox" id="chk-all-songs" class="folder-group folder-chk">
+                            <label for="chk-all-songs">全曲フォルダ</label>
+                        </div>
+                    </div>
+                    <div class="folder-right-col">
+                        <input type="text" id="prob-all-songs" value="0" class="folder-prob numeric-input" disabled>
+                        <span class="prob-unit">%</span>
+                        <button class="lock-btn" onclick="toggleLock(this)">🔓</button>
+                    </div>
+                </div>
+
+            </div>
+            <div class="error-msg" id="folder-prob-error" style="margin-top: 8px; text-align: right;">確率の合計が100%ではありません</div>
+        </div>
+
+        <div class="section">
             <div class="section-title">プレースピード</div>
             <div class="option-row">
                 <div class="range-group" style="color: var(--text-color);">
-                    x <input type="number" id="speed-min" value="0.70" step="0.05"> - 
-                    x <input type="number" id="speed-max" value="1.50" step="0.05">
+                    x <input type="text" id="speed-min" value="0.70" class="numeric-input" style="width:60px;"> - 
+                    x <input type="text" id="speed-max" value="1.50" class="numeric-input" style="width:60px;">
                     <span class="error-msg">Error</span>
                     <span style="font-size:0.8rem; color:#888; margin-left:10px;">(STEP: 0.05)</span>
                 </div>
@@ -388,54 +673,195 @@
         </div>
 
         <div class="section">
-            <div class="section-title">フォルダ</div>
-            
+            <div class="section-title">特別ルール (任意)</div>
             <div class="option-row">
-                <input type="checkbox" id="chk-level" checked class="folder-group">
-                <label for="chk-level">レベルフォルダ</label>
-                
-                <span class="prob-input-group">
-                    (確率: <input type="number" id="prob-level" value="50" min="0" max="100">)
-                </span>
-
-                <div class="range-group">
-                    ★<input type="number" id="level-min" value="1" min="1" max="12"> - 
-                    ★<input type="number" id="level-max" value="12" min="1" max="12">
-                    <span class="error-msg">Error</span>
-                </div>
-            </div>
-
-            <div class="option-row">
-                <input type="checkbox" id="chk-dahlia" checked class="folder-group">
-                <label for="chk-dahlia">ダリアフォルダ</label>
-                
-                <span class="prob-input-group">
-                    (確率: <input type="number" id="prob-dahlia" value="50" min="0" max="100">)
-                </span>
+                <span>特別ルールを有効にする場合は「詳細」から設定してください</span>
+                <button class="detail-btn" id="open-rules-btn">詳細設定</button>
             </div>
         </div>
 
         <button id="roll-btn" disabled>LOADING DATA...</button>
 
-        <div id="result-area">
-            <div class="result-line">
-                <div class="result-label">ゲージ</div>
-                <div class="result-value" id="res-val-0">---</div>
+        <div id="result-area"></div>
+    </div>
+
+    <div class="modal-overlay" id="rules-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>特別ルール設定</h3>
+                <button class="close-modal" id="close-rules-btn">×</button>
             </div>
-            <div class="result-line">
-                <div class="result-label">プレースピード</div>
-                <div class="result-value" id="res-val-1">---</div>
-            </div>
-            <div class="result-line">
-                <div class="result-label" id="lbl-folder">フォルダ＆楽曲</div>
-                <div class="result-value" id="res-val-2">---</div>
+            <div class="modal-body" id="rules-container">
+                <div class="rule-group" data-id="0">
+                    <div class="rule-group-header">
+                        <input type="checkbox" class="rule-enable-chk" id="rule-chk-0">
+                        <input type="text" class="rule-group-name" value="オプション1" placeholder="項目名">
+                    </div>
+                    <div class="rule-items-container" id="rule-items-0"></div>
+                    <button class="rule-btn add-rule-btn" onclick="addRuleItem(0)">+ 項目を追加</button>
+                    <div class="error-msg rule-prob-error">確率合計≠100%</div>
+                </div>
+
+                <div class="rule-group" data-id="1">
+                    <div class="rule-group-header">
+                        <input type="checkbox" class="rule-enable-chk" id="rule-chk-1">
+                        <input type="text" class="rule-group-name" value="オプション2" placeholder="項目名">
+                    </div>
+                    <div class="rule-items-container" id="rule-items-1"></div>
+                    <button class="rule-btn add-rule-btn" onclick="addRuleItem(1)">+ 項目を追加</button>
+                    <div class="error-msg rule-prob-error">確率合計≠100%</div>
+                </div>
+
+                <div class="rule-group" data-id="2">
+                    <div class="rule-group-header">
+                        <input type="checkbox" class="rule-enable-chk" id="rule-chk-2">
+                        <input type="text" class="rule-group-name" value="オプション3" placeholder="項目名">
+                    </div>
+                    <div class="rule-items-container" id="rule-items-2"></div>
+                    <button class="rule-btn add-rule-btn" onclick="addRuleItem(2)">+ 項目を追加</button>
+                    <div class="error-msg rule-prob-error">確率合計≠100%</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="footer">Created by DEDEDE with Gemini | Version 260207</div>
+    <div class="footer">Created by DEDEDE with Gemini | Version 3.0 特別ルール</div>
 
     <script>
+        // --- Full-width to Half-width Normalizer ---
+        function normalizeInput(el) {
+            let val = el.value;
+            val = val.replace(/[０-９]/g, function(s) {
+                return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+            });
+            val = val.replace(/[^0-9.]/g, '');
+            const dots = val.split('.');
+            if (dots.length > 2) {
+                val = dots[0] + '.' + dots.slice(1).join('');
+            }
+            if (el.value !== val) {
+                el.value = val;
+            }
+        }
+
+        window.toggleLock = function(btn) {
+            const input = btn.previousElementSibling.previousElementSibling; 
+            if(!input) return;
+
+            if (btn.classList.contains('locked')) {
+                btn.classList.remove('locked');
+                btn.textContent = "🔓";
+                input.readOnly = false;
+            } else {
+                btn.classList.add('locked');
+                btn.textContent = "🔒";
+                input.readOnly = true;
+            }
+            if(typeof validateAll === 'function') validateAll();
+        };
+
+        function isLocked(input) {
+            return input.readOnly;
+        }
+
+        function rebalanceProbabilities(changedInput, allInputs) {
+            const newVal = Math.min(100, Math.max(0, parseInt(changedInput.value) || 0));
+            changedInput.value = newVal; 
+            
+            const siblings = Array.from(allInputs).filter(i => i !== changedInput);
+            const unlockedSiblings = siblings.filter(i => !isLocked(i));
+
+            if (unlockedSiblings.length === 0) return;
+
+            const lockedSum = siblings.filter(i => isLocked(i)).reduce((sum, i) => sum + (parseInt(i.value)||0), 0);
+            const remainingSpace = 100 - newVal - lockedSum;
+
+            if (remainingSpace < 0) {
+                unlockedSiblings.forEach(i => i.value = 0);
+                return;
+            }
+
+            let currentUnlockedTotal = unlockedSiblings.reduce((sum, input) => sum + (parseInt(input.value) || 0), 0);
+            
+            if (currentUnlockedTotal === 0) {
+                const count = unlockedSiblings.length;
+                const base = Math.floor(remainingSpace / count);
+                const rem = remainingSpace % count;
+                unlockedSiblings.forEach((input, index) => {
+                    input.value = base + (index < rem ? 1 : 0);
+                });
+                return;
+            }
+
+            let distributedSum = 0;
+            unlockedSiblings.forEach((input, index) => {
+                if (index === unlockedSiblings.length - 1) {
+                    input.value = Math.max(0, remainingSpace - distributedSum);
+                } else {
+                    const currentVal = parseInt(input.value) || 0;
+                    const ratio = currentVal / currentUnlockedTotal;
+                    const nextVal = Math.round(remainingSpace * ratio);
+                    input.value = nextVal;
+                    distributedSum += nextVal;
+                }
+            });
+        }
+
+        window.addRuleItem = function(groupId, text = "", prob = null) {
+            const container = document.getElementById(`rule-items-${groupId}`);
+            if(!container) return;
+
+            const div = document.createElement('div');
+            div.className = 'rule-item-row';
+            
+            const startVal = (container.children.length === 0) ? 100 : 0;
+
+            div.innerHTML = `
+                <input type="text" value="${text}" placeholder="選択肢">
+                <span class="prob-input-group">
+                    (<input type="text" value="${startVal}" class="rule-item-prob numeric-input">%)
+                    <span class="prob-unit" style="display:none;"></span>
+                    <button class="lock-btn" onclick="toggleLock(this)">🔓</button>
+                </span>
+                <button class="rule-btn remove-rule-btn" onclick="removeRuleItem(this, ${groupId})">-</button>
+            `;
+            container.appendChild(div);
+
+            const input = div.querySelector('.rule-item-prob');
+            // Attach Normalizer
+            input.addEventListener('input', function() {
+                normalizeInput(this);
+                const all = container.querySelectorAll('.rule-item-prob');
+                rebalanceProbabilities(this, all);
+                if(typeof validateAll === 'function') validateAll();
+            });
+
+            if(typeof validateAll === 'function') validateAll();
+        };
+
+        window.removeRuleItem = function(btn, groupId) {
+            const container = document.getElementById(`rule-items-${groupId}`);
+            const row = btn.parentElement;
+            const input = row.querySelector('.rule-item-prob');
+            
+            const valToRemove = parseInt(input.value) || 0;
+            row.remove();
+            
+            const remainingInputs = container.querySelectorAll('.rule-item-prob');
+            const unlocked = Array.from(remainingInputs).filter(i => !isLocked(i));
+            
+            if (unlocked.length > 0 && valToRemove > 0) {
+                const add = Math.floor(valToRemove / unlocked.length);
+                const rem = valToRemove % unlocked.length;
+                unlocked.forEach((inp, idx) => {
+                    let v = parseInt(inp.value)||0;
+                    inp.value = v + add + (idx < rem ? 1 : 0);
+                });
+            }
+
+            if(typeof validateAll === 'function') validateAll();
+        };
+
         let songData = [];
 
         document.getElementById('force-reload').addEventListener('click', function() {
@@ -447,8 +873,9 @@
         window.addEventListener('DOMContentLoaded', () => {
             initProbabilityLogic();
             initValidationLogic();
+            initSpecialRulesLogic();
 
-            fetch('./songs.json')
+            fetch('./songs.json?t=' + Date.now())
                 .then(response => {
                     if (!response.ok) throw new Error("HTTP Error " + response.status);
                     return response.json();
@@ -469,74 +896,77 @@
         function initProbabilityLogic() {
             const chkLevel = document.getElementById('chk-level');
             const chkDahlia = document.getElementById('chk-dahlia');
+            const chkAll = document.getElementById('chk-all-songs');
+            
             const probLevel = document.getElementById('prob-level');
             const probDahlia = document.getElementById('prob-dahlia');
+            const probAll = document.getElementById('prob-all-songs');
 
-            function updateProbabilityInputs() {
-                if (chkLevel.checked && chkDahlia.checked) {
-                    probLevel.disabled = false;
-                    probDahlia.disabled = false;
-                    if (parseInt(probLevel.value) === 0 && parseInt(probDahlia.value) === 0) {
-                        probLevel.value = 50;
-                        probDahlia.value = 50;
-                    } else if (parseInt(probLevel.value) === 100 && parseInt(probDahlia.value) === 0) {
-                        probLevel.value = 50;
-                        probDahlia.value = 50;
-                    } else if (parseInt(probLevel.value) === 0 && parseInt(probDahlia.value) === 100) {
-                        probLevel.value = 50;
-                        probDahlia.value = 50;
-                    }
-                } else if (chkLevel.checked && !chkDahlia.checked) {
-                    probLevel.value = 100;
-                    probDahlia.value = 0;
-                    probLevel.disabled = true;
-                    probDahlia.disabled = true;
-                } else if (!chkLevel.checked && chkDahlia.checked) {
-                    probLevel.value = 0;
-                    probDahlia.value = 100;
-                    probLevel.disabled = true;
-                    probDahlia.disabled = true;
-                } else {
-                    probLevel.value = 0;
-                    probDahlia.value = 0;
-                    probLevel.disabled = true;
-                    probDahlia.disabled = true;
+            const allChks = [chkLevel, chkDahlia, chkAll];
+            const allProbs = [probLevel, probDahlia, probAll];
+
+            function getActiveProbs() {
+                const active = [];
+                if(chkLevel.checked) active.push(probLevel);
+                if(chkDahlia.checked) active.push(probDahlia);
+                if(chkAll.checked) active.push(probAll);
+                return active;
+            }
+
+            function updateInputs() {
+                probLevel.disabled = !chkLevel.checked;
+                probDahlia.disabled = !chkDahlia.checked;
+                probAll.disabled = !chkAll.checked;
+
+                const active = getActiveProbs();
+                if (active.length > 0) {
+                    const base = Math.floor(100 / active.length);
+                    const rem = 100 % active.length;
+                    active.forEach((inp, i) => {
+                        if(!isLocked(inp)) {
+                            inp.value = base + (i<rem ? 1:0);
+                        }
+                    });
                 }
                 validateAll();
             }
 
-            chkLevel.addEventListener('change', updateProbabilityInputs);
-            chkDahlia.addEventListener('change', updateProbabilityInputs);
-
-            probLevel.addEventListener('input', function() {
-                if (!chkLevel.checked || !chkDahlia.checked) return;
-                
-                let val = parseInt(this.value);
-                if (isNaN(val)) val = 0;
-                if (val > 100) val = 100;
-                if (val < 0) val = 0;
-                
-                this.value = val;
-                probDahlia.value = 100 - val;
-            });
-
-            probDahlia.addEventListener('input', function() {
-                if (!chkLevel.checked || !chkDahlia.checked) return;
-                
-                let val = parseInt(this.value);
-                if (isNaN(val)) val = 0;
-                if (val > 100) val = 100;
-                if (val < 0) val = 0;
-                
-                this.value = val;
-                probLevel.value = 100 - val;
+            allChks.forEach(chk => chk.addEventListener('change', updateInputs));
+            
+            allProbs.forEach(prob => {
+                prob.addEventListener('input', function() {
+                    normalizeInput(this);
+                    const active = getActiveProbs();
+                    if(active.length > 1) {
+                        rebalanceProbabilities(this, active);
+                    }
+                    validateAll();
+                });
             });
         }
 
+        function initSpecialRulesLogic() {
+            const modal = document.getElementById('rules-modal');
+            const openBtn = document.getElementById('open-rules-btn');
+            const closeBtn = document.getElementById('close-rules-btn');
+            const rulesContainer = document.getElementById('rules-container');
+
+            if(openBtn) openBtn.addEventListener('click', () => { modal.style.display = 'flex'; validateAll(); });
+            if(closeBtn) closeBtn.addEventListener('click', () => { modal.style.display = 'none'; validateAll(); });
+
+            for(let i=0; i<3; i++) {
+                addRuleItem(i, "項目A");
+                addRuleItem(i, "項目B");
+            }
+        }
+
         function initValidationLogic() {
-            const inputs = document.querySelectorAll('input[type="number"], input[type="checkbox"]');
+            const inputs = document.querySelectorAll('input.numeric-input');
             inputs.forEach(input => {
-                input.addEventListener('input', validateAll);
+                input.addEventListener('input', function() {
+                    normalizeInput(this);
+                    validateAll();
+                });
                 input.addEventListener('change', validateAll);
             });
         }
@@ -544,24 +974,37 @@
         function validateAll() {
             let isValid = true;
             const btn = document.getElementById('roll-btn');
+            const errorFolder = document.getElementById('folder-prob-error');
+
+            if(!btn) return;
 
             const gaugeChecked = Array.from(document.querySelectorAll('.gauge-group')).some(c => c.checked);
             const folderChecked = Array.from(document.querySelectorAll('.folder-group')).some(c => c.checked);
 
-            if (!gaugeChecked || !folderChecked) {
+            if (!gaugeChecked || !folderChecked) isValid = false;
+
+            let folderSum = 0;
+            document.querySelectorAll('.folder-prob').forEach(p => {
+                if(!p.disabled) folderSum += (parseInt(p.value) || 0);
+            });
+            
+            if (folderChecked && folderSum !== 100) {
                 isValid = false;
+                if(errorFolder) errorFolder.classList.add('visible');
+            } else {
+                if(errorFolder) errorFolder.classList.remove('visible');
             }
 
             function checkField(id, min, max, isEnabled) {
                 const el = document.getElementById(id);
-                const parent = el.closest('.range-group');
+                if(!el) return true;
+                const parent = el.closest('.range-group, .range-inline');
                 const errorSpan = parent ? parent.querySelector('.error-msg') : null;
                 
                 if (!isEnabled) {
                     el.classList.remove('input-error');
                     return true;
                 }
-
                 const val = parseFloat(el.value);
                 if (isNaN(val) || val < min || val > max) {
                     el.classList.add('input-error');
@@ -569,30 +1012,46 @@
                     return false;
                 } else {
                     el.classList.remove('input-error');
-                    const siblings = parent.querySelectorAll('input[type="number"]');
-                    let allSiblingsValid = true;
-                    siblings.forEach(sib => {
-                        if (sib.classList.contains('input-error')) allSiblingsValid = false;
-                    });
-                    if (allSiblingsValid && errorSpan) errorSpan.classList.remove('visible');
+                    if(errorSpan) errorSpan.classList.remove('visible');
                     return true;
                 }
             }
 
-            const chkDani = document.getElementById('chk-dani').checked;
-            if (!checkField('dani-min', 2, 100, chkDani)) isValid = false;
-            if (!checkField('dani-max', 2, 100, chkDani)) isValid = false;
-
-            const chkErosion = document.getElementById('chk-erosion').checked;
-            if (!checkField('erosion-min', 1, 5, chkErosion)) isValid = false;
-            if (!checkField('erosion-max', 1, 5, chkErosion)) isValid = false;
-
+            if (!checkField('dani-min', 2, 100, document.getElementById('chk-dani').checked)) isValid = false;
+            if (!checkField('dani-max', 2, 100, document.getElementById('chk-dani').checked)) isValid = false;
+            if (!checkField('erosion-min', 1, 5, document.getElementById('chk-erosion').checked)) isValid = false;
+            if (!checkField('erosion-max', 1, 5, document.getElementById('chk-erosion').checked)) isValid = false;
             if (!checkField('speed-min', 0.70, 1.50, true)) isValid = false;
             if (!checkField('speed-max', 0.70, 1.50, true)) isValid = false;
+            if (!checkField('level-min', 1, 12, document.getElementById('chk-level').checked)) isValid = false;
+            if (!checkField('level-max', 1, 12, document.getElementById('chk-level').checked)) isValid = false;
 
-            const chkLevel = document.getElementById('chk-level').checked;
-            if (!checkField('level-min', 1, 12, chkLevel)) isValid = false;
-            if (!checkField('level-max', 1, 12, chkLevel)) isValid = false;
+            for (let i = 0; i < 3; i++) {
+                const groupDiv = document.querySelector(`.rule-group[data-id="${i}"]`);
+                if(groupDiv) {
+                    const enabled = groupDiv.querySelector('.rule-enable-chk').checked;
+                    const errorMsg = groupDiv.querySelector('.rule-prob-error');
+                    
+                    if (enabled) {
+                        let sum = 0;
+                        const items = groupDiv.querySelectorAll('.rule-item-prob');
+                        if (items.length === 0) {
+                            isValid = false; 
+                            errorMsg.classList.add('visible');
+                        } else {
+                            items.forEach(inp => sum += (parseInt(inp.value) || 0));
+                            if (sum !== 100) {
+                                isValid = false;
+                                errorMsg.classList.add('visible');
+                            } else {
+                                errorMsg.classList.remove('visible');
+                            }
+                        }
+                    } else {
+                        errorMsg.classList.remove('visible');
+                    }
+                }
+            }
 
             if (songData.length > 0) {
                 if (isValid) {
@@ -600,7 +1059,7 @@
                     btn.textContent = "START";
                 } else {
                     btn.disabled = true;
-                    btn.textContent = "ERROR";
+                    btn.textContent = "ERROR (条件を確認してください)";
                 }
             }
         }
@@ -614,44 +1073,42 @@
         function getRandomStep(min, max, step) {
             const steps = Math.floor((max - min) / step);
             const randomStep = Math.floor(Math.random() * (steps + 1));
-            const result = min + (randomStep * step);
-            return parseFloat(result.toFixed(2));
+            return parseFloat((min + (randomStep * step)).toFixed(2));
         }
 
         function pickSongByLevel(level) {
-            if (!songData || songData.length === 0) return null;
-            
+            if (!songData.length) return null;
             const candidates = songData.filter(song => {
-                const sp = song.levels.sp;
-                return sp.n == level || sp.h == level || sp.a == level || sp.l == level;
+                const s = song.levels.sp;
+                return s.n==level || s.h==level || s.a==level || s.l==level;
             });
-
-            if (candidates.length === 0) return null;
-            
+            if (!candidates.length) return null;
             const song = candidates[Math.floor(Math.random() * candidates.length)];
-            
-            const validTypes = [];
-            if (song.levels.sp.n == level) validTypes.push('n');
-            if (song.levels.sp.h == level) validTypes.push('h');
-            if (song.levels.sp.a == level) validTypes.push('a');
-            if (song.levels.sp.l == level) validTypes.push('l');
-            
-            const selectedType = validTypes[Math.floor(Math.random() * validTypes.length)];
-            
-            return { song: song, type: selectedType };
+            const types = [];
+            if (song.levels.sp.n == level) types.push('n');
+            if (song.levels.sp.h == level) types.push('h');
+            if (song.levels.sp.a == level) types.push('a');
+            if (song.levels.sp.l == level) types.push('l');
+            return { song: song, type: types[Math.floor(Math.random() * types.length)] };
         }
 
         function pickSongByDahlia() {
-            if (!songData || songData.length === 0) return null;
-            
-            const candidates = songData.filter(song => {
-                return song.levels.sp.l > 0;
-            });
+            if (!songData.length) return null;
+            const candidates = songData.filter(s => s.levels.sp.l > 0);
+            if (!candidates.length) return null;
+            return { song: candidates[Math.floor(Math.random() * candidates.length)], type: 'l' };
+        }
 
-            if (candidates.length === 0) return null;
-            
-            const song = candidates[Math.floor(Math.random() * candidates.length)];
-            return { song: song, type: 'l' };
+        function pickAnySong() {
+            if (!songData.length) return null;
+            const song = songData[Math.floor(Math.random() * songData.length)];
+            const types = [];
+            if (song.levels.sp.n > 0) types.push('n');
+            if (song.levels.sp.h > 0) types.push('h');
+            if (song.levels.sp.a > 0) types.push('a');
+            if (song.levels.sp.l > 0) types.push('l');
+            if(types.length === 0) return { song: song, type: 'a' };
+            return { song: song, type: types[Math.floor(Math.random() * types.length)] };
         }
 
         function getDifficultySuffix(type) {
@@ -662,209 +1119,180 @@
             return '';
         }
 
-        function generateOneResult() {
+        function generateResultsArray() {
             const results = [];
+
+            const gauges = [];
+            const chkDani = document.getElementById('chk-dani');
+            const chkEro = document.getElementById('chk-erosion');
             
-            const isSongMode = document.getElementById('mode-song-on').checked;
-
-            const gaugeOptions = [];
-            if (document.getElementById('chk-dani').checked) {
-                const min = parseInt(document.getElementById('dani-min').value) || 0;
-                const max = parseInt(document.getElementById('dani-max').value) || 100;
-                gaugeOptions.push({ type: '段位', hasValue: true, min: min, max: max, suffix: '%' });
+            if (chkDani.checked) {
+                gauges.push({ type: '段位', hasVal: true, 
+                    min: parseInt(document.getElementById('dani-min').value), 
+                    max: parseInt(document.getElementById('dani-max').value), suffix: '%' });
             }
-            if (document.getElementById('chk-erosion').checked) {
-                const min = parseInt(document.getElementById('erosion-min').value) || 1;
-                const max = parseInt(document.getElementById('erosion-max').value) || 5;
-                gaugeOptions.push({ type: '侵蝕', hasValue: true, min: min, max: max, suffix: '★' });
+            if (chkEro.checked) {
+                gauges.push({ type: '侵蝕', hasVal: true, 
+                    min: parseInt(document.getElementById('erosion-min').value), 
+                    max: parseInt(document.getElementById('erosion-max').value), suffix: '★' });
             }
-            if (document.getElementById('chk-exh').checked) gaugeOptions.push({ type: 'EXH', hasValue: false });
-            if (document.getElementById('chk-hard').checked) gaugeOptions.push({ type: 'HARD', hasValue: false });
-            if (document.getElementById('chk-normal').checked) gaugeOptions.push({ type: 'NORMAL', hasValue: false });
+            if (document.getElementById('chk-exh').checked) gauges.push({ type: 'EXH', hasVal: false });
+            if (document.getElementById('chk-hard').checked) gauges.push({ type: 'HARD', hasVal: false });
+            if (document.getElementById('chk-normal').checked) gauges.push({ type: 'NORMAL', hasVal: false });
 
-            let gaugeResult = "なし";
-            if (gaugeOptions.length > 0) {
-                const selectedGauge = gaugeOptions[Math.floor(Math.random() * gaugeOptions.length)];
-                if (selectedGauge.hasValue) {
-                    const rMin = Math.min(selectedGauge.min, selectedGauge.max);
-                    const rMax = Math.max(selectedGauge.min, selectedGauge.max);
-                    
+            let gRes = "なし";
+            if (gauges.length > 0) {
+                const sel = gauges[Math.floor(Math.random() * gauges.length)];
+                if (sel.hasVal) {
+                    const rMin = Math.min(sel.min, sel.max);
+                    const rMax = Math.max(sel.min, sel.max);
                     let val;
-                    if (selectedGauge.type === '段位') {
-                        const minEven = Math.ceil(rMin / 2);
-                        const maxEven = Math.floor(rMax / 2);
-                        val = getRandomInt(minEven, maxEven) * 2;
+                    if(sel.type === '段位') {
+                        val = getRandomInt(Math.ceil(rMin/2), Math.floor(rMax/2)) * 2;
                     } else {
                         val = getRandomInt(rMin, rMax);
                     }
-                    
-                    gaugeResult = `${selectedGauge.type} ${val}${selectedGauge.suffix}`;
+                    gRes = `${sel.type} ${val}${sel.suffix}`;
                 } else {
-                    gaugeResult = selectedGauge.type;
+                    gRes = sel.type;
                 }
             }
-            results.push(gaugeResult);
+            results.push({ label: "ゲージ", value: gRes });
 
-            const speedMin = parseFloat(document.getElementById('speed-min').value) || 0.70;
-            const speedMax = parseFloat(document.getElementById('speed-max').value) || 1.50;
-            const rSpeedMin = Math.min(speedMin, speedMax);
-            const rSpeedMax = Math.max(speedMin, speedMax);
-            const speedVal = getRandomStep(rSpeedMin, rSpeedMax, 0.05);
-            results.push(`x${speedVal.toFixed(2)}`);
+            const sMin = parseFloat(document.getElementById('speed-min').value);
+            const sMax = parseFloat(document.getElementById('speed-max').value);
+            const sVal = getRandomStep(Math.min(sMin, sMax), Math.max(sMin, sMax), 0.05);
+            results.push({ label: "プレースピード", value: `x${sVal.toFixed(2)}` });
 
-            const folderOptions = [];
-            if (document.getElementById('chk-level').checked) {
-                const weight = parseInt(document.getElementById('prob-level').value) || 0;
-                const min = parseInt(document.getElementById('level-min').value) || 1;
-                const max = parseInt(document.getElementById('level-max').value) || 12;
-                folderOptions.push({ type: 'level', hasValue: true, min: min, max: max, weight: weight });
+            const folders = [];
+            if(document.getElementById('chk-level').checked) {
+                folders.push({ type: 'lvl', w: parseInt(document.getElementById('prob-level').value)||0 });
             }
-            if (document.getElementById('chk-dahlia').checked) {
-                const weight = parseInt(document.getElementById('prob-dahlia').value) || 0;
-                folderOptions.push({ type: 'dahlia', hasValue: false, weight: weight });
+            if(document.getElementById('chk-dahlia').checked) {
+                folders.push({ type: 'dah', w: parseInt(document.getElementById('prob-dahlia').value)||0 });
+            }
+            if(document.getElementById('chk-all-songs').checked) {
+                folders.push({ type: 'all', w: parseInt(document.getElementById('prob-all-songs').value)||0 });
             }
 
-            let folderResultHTML = "なし";
-            
-            if (folderOptions.length > 0) {
-                let totalWeight = 0;
-                folderOptions.forEach(opt => totalWeight += opt.weight);
-                if (totalWeight <= 0) {
-                    folderOptions.forEach(opt => opt.weight = 1);
-                    totalWeight = folderOptions.length;
+            let fHtml = "なし";
+            if (folders.length > 0) {
+                let totalW = folders.reduce((a,b)=>a+b.w, 0);
+                let rnd = Math.random() * totalW;
+                let selFolder = null;
+                for(const f of folders) {
+                    if(rnd < f.w) { selFolder = f; break; }
+                    rnd -= f.w;
                 }
-                let random = Math.random() * totalWeight;
-                var selectedFolder = null;
-                for (const opt of folderOptions) {
-                    if (random < opt.weight) {
-                        selectedFolder = opt;
-                        break;
+                if(!selFolder) selFolder = folders[folders.length-1];
+
+                let sObj = null;
+                let fName = "";
+                const isSong = document.getElementById('mode-song-on').checked;
+
+                if(selFolder.type === 'lvl') {
+                    const lMin = parseInt(document.getElementById('level-min').value);
+                    const lMax = parseInt(document.getElementById('level-max').value);
+                    const lvl = getRandomInt(Math.min(lMin,lMax), Math.max(lMin,lMax));
+                    fName = `レベルフォルダ ★${lvl}`;
+                    if(isSong) sObj = pickSongByLevel(lvl);
+                } else if(selFolder.type === 'dah') {
+                    fName = "ダリアフォルダ";
+                    if(isSong) sObj = pickSongByDahlia();
+                } else {
+                    fName = "全曲フォルダ";
+                    if(isSong) sObj = pickAnySong();
+                }
+
+                if(isSong) {
+                    if(sObj) {
+                        const fullTitle = `${sObj.song.title_display} ${getDifficultySuffix(sObj.type)}`;
+                        fHtml = `<div class="folder-name">${fName}</div><div class="song-info">${fullTitle}</div>`;
+                    } else {
+                        fHtml = `<div class="folder-name">${fName}</div><div class="folder-name">(該当曲なし)</div>`;
                     }
-                    random -= opt.weight;
+                } else {
+                    fHtml = fName;
                 }
-                if (!selectedFolder) selectedFolder = folderOptions[folderOptions.length - 1];
+            }
+            results.push({ label: document.getElementById('mode-song-on').checked ? "フォルダ＆楽曲" : "フォルダ", value: fHtml, isSong: true });
 
-                if (selectedFolder.type === 'level') {
-                    const rMin = Math.min(selectedFolder.min, selectedFolder.max);
-                    const rMax = Math.max(selectedFolder.min, selectedFolder.max);
-                    const levelVal = getRandomInt(rMin, rMax);
+            for(let i=0; i<3; i++) {
+                const grp = document.querySelector(`.rule-group[data-id="${i}"]`);
+                if(grp && grp.querySelector('.rule-enable-chk').checked) {
+                    const name = grp.querySelector('.rule-group-name').value || `オプション${i+1}`;
+                    const opts = [];
+                    grp.querySelectorAll('.rule-item-row').forEach(row => {
+                        opts.push({
+                            txt: row.querySelector('input[type="text"]').value,
+                            w: parseInt(row.querySelector('.rule-item-prob').value)||0
+                        });
+                    });
                     
-                    if (isSongMode) {
-                        const result = pickSongByLevel(levelVal);
-                        if (result) {
-                            const suffix = getDifficultySuffix(result.type);
-                            const fullTitle = `${result.song.title_display} ${suffix}`;
-                            
-                            folderResultHTML = `
-                                <div class="folder-name">レベルフォルダ ★${levelVal}</div>
-                                <div class="song-info">${fullTitle}</div>
-                            `;
-                        } else {
-                            folderResultHTML = `<div class="folder-name">レベルフォルダ ★${levelVal}</div><div class="folder-name">(該当曲なし)</div>`;
-                        }
-                    } else {
-                        folderResultHTML = `レベルフォルダ ★${levelVal}`;
+                    let tot = opts.reduce((a,b)=>a+b.w, 0);
+                    let rnd = Math.random() * tot;
+                    let pick = "---";
+                    for(const o of opts) {
+                        if(rnd < o.w) { pick = o.txt; break; }
+                        rnd -= o.w;
                     }
-
-                } else if (selectedFolder.type === 'dahlia') {
-                    if (isSongMode) {
-                        const result = pickSongByDahlia();
-                        if (result) {
-                            const suffix = getDifficultySuffix(result.type);
-                            const fullTitle = `${result.song.title_display} ${suffix}`;
-
-                            folderResultHTML = `
-                                <div class="folder-name">ダリアフォルダ</div>
-                                <div class="song-info">${fullTitle}</div>
-                            `;
-                        } else {
-                            folderResultHTML = `<div class="folder-name">ダリアフォルダ</div><div class="folder-name">(該当曲なし)</div>`;
-                        }
-                    } else {
-                        folderResultHTML = `ダリアフォルダ`;
-                    }
+                    results.push({ label: name, value: pick });
                 }
             }
-            results.push(folderResultHTML);
 
             return results;
         }
 
         document.getElementById('roll-btn').addEventListener('click', function() {
-            const btn = document.getElementById('roll-btn');
-            const lblFolder = document.getElementById('lbl-folder');
-            const isSongMode = document.getElementById('mode-song-on').checked;
-            
-            if (isSongMode) {
-                lblFolder.textContent = "フォルダ＆楽曲";
-            } else {
-                lblFolder.textContent = "フォルダ";
-            }
+            const btn = this;
+            const resArea = document.getElementById('result-area');
+            const finalRes = generateResultsArray();
 
-            const finalResults = generateOneResult();
+            resArea.innerHTML = '';
+            resArea.style.display = 'block';
             
+            finalRes.forEach((r, i) => {
+                const d = document.createElement('div');
+                d.className = 'result-line';
+                d.innerHTML = `<div class="result-label">${r.label}</div><div class="result-value rolling-text" id="rv-${i}">---</div>`;
+                resArea.appendChild(d);
+            });
+
             btn.disabled = true;
             btn.textContent = "抽選中...";
-            document.getElementById('result-area').style.display = 'block';
 
-            const domElements = [
-                document.getElementById('res-val-0'),
-                document.getElementById('res-val-1'),
-                document.getElementById('res-val-2')
-            ];
-
-            const startTime = Date.now();
-            const lockTimes = [2000, 4500, 7000];
-            const isLocked = [false, false, false];
-
-            domElements.forEach(el => {
-                el.className = 'result-value rolling-text'; 
-            });
+            const start = Date.now();
+            const locked = new Array(finalRes.length).fill(false);
+            const doms = finalRes.map((_, i) => document.getElementById(`rv-${i}`));
 
             const timer = setInterval(() => {
                 const now = Date.now();
-                const elapsed = now - startTime;
-                
-                const tempResults = generateOneResult(); 
+                const tempRes = generateResultsArray();
+                let done = true;
 
-                let allLocked = true;
-
-                for (let i = 0; i < 3; i++) {
-                    if (!isLocked[i]) {
-                        if (elapsed >= lockTimes[i]) {
-                            isLocked[i] = true;
-                            domElements[i].innerHTML = finalResults[i];
-                            domElements[i].className = 'result-value locked-flash';
+                finalRes.forEach((target, i) => {
+                    if(!locked[i]) {
+                        if((now - start) > (2000 + i*1500)) {
+                            locked[i] = true;
+                            doms[i].innerHTML = target.value;
+                            doms[i].className = 'result-value locked-flash';
                         } else {
-                            if (i === 2) {
-                                let tempHtml = tempResults[i];
-                                tempHtml = tempHtml.replace(
-                                    /<div class="song-info"[\s\S]*?>[\s\S]*?<\/div>/,
-                                    '<div class="song-info waiting-text">楽曲抽選中...</div>'
-                                );
-                                // 万が一スタイル属性がない場合などのバックアップ
-                                if (tempHtml === tempResults[i]) {
-                                    tempHtml = tempHtml.replace(
-                                        /<div class="song-info">.*?<\/div>/,
-                                        '<div class="song-info waiting-text">楽曲抽選中...</div>'
-                                    );
-                                }
-                                const folderEl = domElements[i];
-                                folderEl.innerHTML = tempHtml;
-                            } else {
-                                domElements[i].textContent = tempResults[i];
+                            let txt = (tempRes[i] && tempRes[i].value) ? tempRes[i].value : "---";
+                            if(target.isSong) {
+                                txt = txt.replace(/<div class="song-info"[\s\S]*?>[\s\S]*?<\/div>/, 
+                                    '<div class="song-info waiting-text">楽曲抽選中...</div>');
                             }
-                            allLocked = false;
+                            doms[i].innerHTML = txt;
+                            done = false;
                         }
                     }
-                }
+                });
 
-                if (allLocked) {
+                if(done) {
                     clearInterval(timer);
                     btn.disabled = false;
                     btn.textContent = "START";
                 }
-
             }, 50);
         });
     </script>
