@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ドルーレット v3.0</title>
+    <title>ドルーレット v3.02 +Guide</title>
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -49,9 +49,8 @@
             text-align: center;
         }
 
-        .refresh-btn {
+        .header-btn {
             position: absolute;
-            right: 0;
             top: 50%;
             transform: translateY(-50%);
             background: transparent;
@@ -63,13 +62,20 @@
             font-size: 0.75rem;
             transition: all 0.2s;
             white-space: nowrap;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .refresh-btn:hover {
+        .header-btn:hover {
             background: #333;
             color: #fff;
             border-color: #888;
         }
+
+        .refresh-btn { right: 0; }
+        .help-btn { left: 0; font-weight: bold; width: 24px; height: 24px; padding: 0; font-size: 0.9rem; }
 
         .container {
             width: 100%;
@@ -109,7 +115,6 @@
             font-weight: bold;
         }
 
-        /* Generic Text Input */
         input[type="text"] {
             background: var(--input-bg);
             border: 1px solid var(--input-border);
@@ -118,7 +123,6 @@
             border-radius: 4px;
         }
 
-        /* Numeric Class for inputs that act as numbers */
         input.numeric-input {
             width: 50px;
             text-align: center;
@@ -162,7 +166,6 @@
             margin-right: 5px;
         }
 
-        /* Folder Layout */
         .folder-list {
             display: flex;
             flex-direction: column;
@@ -186,7 +189,6 @@
             border-color: #555;
         }
 
-        /* Left side: Flex Column to force vertical stacking */
         .folder-left-col {
             display: flex;
             flex-direction: column;
@@ -202,10 +204,9 @@
         .folder-settings-row {
             display: flex;
             align-items: center;
-            padding-left: 28px; /* Indent below checkbox */
+            padding-left: 28px;
         }
 
-        /* Right side: Probability and Lock */
         .folder-right-col {
             display: flex;
             align-items: center;
@@ -388,7 +389,6 @@
             font-family: monospace;
         }
 
-        /* Modal Styles */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -437,10 +437,21 @@
         }
 
         .modal-body {
-            padding: 15px;
+            padding: 20px;
             overflow-y: auto;
             flex-grow: 1;
+            line-height: 1.6;
         }
+
+        .help-section { margin-bottom: 20px; }
+        .help-section h4 { 
+            color: var(--accent-color); 
+            margin-bottom: 8px; 
+            border-bottom: 1px solid #444;
+            padding-bottom: 4px;
+        }
+        .help-section ul { padding-left: 20px; margin: 0; font-size: 0.95rem; }
+        .help-section li { margin-bottom: 5px; }
 
         .rule-group {
             background: #333;
@@ -517,34 +528,27 @@
         }
 
         @media (max-width: 450px) {
-            .refresh-btn {
-                position: static;
-                transform: none;
-                margin-top: 10px;
-            }
+            .refresh-btn { right: 0; }
+            .help-btn { left: 0; }
             .header-wrapper {
-                flex-direction: column;
+                flex-direction: row; 
+                justify-content: center;
             }
             .folder-row-item {
                 flex-direction: row; 
                 align-items: center;
             }
-            .folder-left {
-                width: 100%; 
-                margin-bottom: 5px;
-            }
-            .folder-right {
-                width: 100%;
-                justify-content: flex-end;
-            }
+            .folder-left-col { width: 100%; }
+            .folder-right-col { justify-content: flex-end; }
         }
     </style>
 </head>
 <body>
 
     <div class="header-wrapper">
-        <h1>ドルーレット v3.0</h1>
-        <button class="refresh-btn" id="force-reload" title="Reload">↻ RELOAD</button>
+        <button class="header-btn help-btn" id="open-help-btn" title="使い方">？</button>
+        <h1>ドルーレット v3.02</h1>
+        <button class="header-btn refresh-btn" id="force-reload" title="Reload">↻ RELOAD</button>
     </div>
 
     <div id="loading-status">Database Loading...</div>
@@ -685,6 +689,53 @@
         <div id="result-area"></div>
     </div>
 
+    <div class="modal-overlay" id="help-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>使い方ガイド</h3>
+                <button class="close-modal" id="close-help-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="help-section">
+                    <h4>1. モード設定</h4>
+                    <ul>
+                        <li><b>曲名あり</b>: 楽曲名と難易度まで抽選します。</li>
+                        <li><b>曲名なし</b>: フォルダ名のみを表示します。</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h4>2. ゲージ設定</h4>
+                    <ul>
+                        <li>ゲージタイプをランダムで決定します。</li>
+                        <li>段位や侵蝕は数値の範囲（Min - Max）を指定可能です。</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h4>3. フォルダ設定 & 確率調整</h4>
+                    <ul>
+                        <li>レベル、ダリア、全曲の3種類から抽選対象を選べます。</li>
+                        <li>レベルフォルダが複数レベルを含む場合、割り当てられた確率は各レベルに等分されます。</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h4>4. 特別ルール (Special Rules)</h4>
+                    <ul>
+                        <li>独自の「縛り」や「オプション」を追加できます。</li>
+                        <li>「詳細設定」から最大3つのグループを作成可能です。</li>
+                        <li>項目名と確率（%）を自由に設定し、抽選結果に追加表示できます。</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h4>5. 確率について</h4>
+                    <ul>
+                        <li><b>自動調整</b>: 確率を変更すると、他の項目の数値が自動的に調整され、合計が100%になります。</li>
+                        <li><b>ロック機能 (🔓)</b>: 鍵アイコンを押すと確率を固定できます。固定された数値は自動調整の影響を受けません。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="rules-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -725,7 +776,7 @@
         </div>
     </div>
 
-    <div class="footer">Created by DEDEDE with Gemini | Version 3.0 特別ルール</div>
+    <div class="footer">Created by DEDEDE with Gemini | Version 260207 v3.02 +Guide</div>
 
     <script>
         // --- Full-width to Half-width Normalizer ---
@@ -870,10 +921,30 @@
             window.location.href = url.toString();
         });
 
+        // Setup Modals
+        function setupModals() {
+            // Help Modal
+            const helpModal = document.getElementById('help-modal');
+            const openHelp = document.getElementById('open-help-btn');
+            const closeHelp = document.getElementById('close-help-btn');
+            
+            if(openHelp) openHelp.addEventListener('click', () => { helpModal.style.display = 'flex'; });
+            if(closeHelp) closeHelp.addEventListener('click', () => { helpModal.style.display = 'none'; });
+
+            // Rules Modal
+            const rulesModal = document.getElementById('rules-modal');
+            const openRules = document.getElementById('open-rules-btn');
+            const closeRules = document.getElementById('close-rules-btn');
+            
+            if(openRules) openRules.addEventListener('click', () => { rulesModal.style.display = 'flex'; validateAll(); });
+            if(closeRules) closeRules.addEventListener('click', () => { rulesModal.style.display = 'none'; validateAll(); });
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             initProbabilityLogic();
             initValidationLogic();
             initSpecialRulesLogic();
+            setupModals();
 
             fetch('./songs.json?t=' + Date.now())
                 .then(response => {
@@ -946,14 +1017,8 @@
         }
 
         function initSpecialRulesLogic() {
-            const modal = document.getElementById('rules-modal');
-            const openBtn = document.getElementById('open-rules-btn');
-            const closeBtn = document.getElementById('close-rules-btn');
             const rulesContainer = document.getElementById('rules-container');
-
-            if(openBtn) openBtn.addEventListener('click', () => { modal.style.display = 'flex'; validateAll(); });
-            if(closeBtn) closeBtn.addEventListener('click', () => { modal.style.display = 'none'; validateAll(); });
-
+            // Default Items
             for(let i=0; i<3; i++) {
                 addRuleItem(i, "項目A");
                 addRuleItem(i, "項目B");
